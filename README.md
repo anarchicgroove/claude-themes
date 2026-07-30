@@ -26,9 +26,17 @@ Both give you the same look. The Safari version just does a little bit more, bec
 
 A soft pink light theme. Pastel pink, peach and cream, a faintly sparkling background, glassy menus, and cloud-shaped message bubbles for everything you send. Built to be gentle on the eyes and light on battery.
 
-![Strawberry Clouds](strawberry-clouds/preview.png)
+<img src="strawberry-clouds/preview.jpg" alt="Strawberry Clouds" width="300">
 
 **Install →** [Stylus version](https://raw.githubusercontent.com/anarchicgroove/claude-themes/main/strawberry-clouds/strawberry-clouds.user.css) · [Userscripts version](https://github.com/anarchicgroove/claude-themes/blob/main/strawberry-clouds/strawberry-clouds.user.js)
+
+### 🍵 Matcha Mornings
+
+A soft sage-green light theme. Pale tea and cream, thin hand-drawn ferns drifting across the background, deep green ink, and stitched message bubbles that look a bit like a little chalkboard. Same gentle, low-battery approach as Strawberry Clouds, in a completely different flavour.
+
+<img src="matcha-mornings/preview.jpg" alt="Matcha Mornings" width="300">
+
+**Install →** [Stylus version](https://raw.githubusercontent.com/anarchicgroove/claude-themes/main/matcha-mornings/matcha-mornings.user.css) · [Userscripts version](https://github.com/anarchicgroove/claude-themes/blob/main/matcha-mornings/matcha-mornings.user.js)
 
 ---
 
