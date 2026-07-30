@@ -94,9 +94,36 @@ To turn it off later, open the Userscripts app and toggle the theme off.
 
 ---
 
-## Making your own
+## Want your own theme?
 
-Every theme in here is a plain text file. Open one, change the hex codes at the top, and you've got your own. That's genuinely all most of it is.
+You don't need to know how to code. Claude can write the whole file for you — that's how every theme in here was made.
+
+Two things make the difference between a frustrating attempt and a good one:
+
+**Tell it which extension you're using.** The file format isn't cosmetic. Stylus needs a UserCSS file; Userscripts needs a userscript. If Claude guesses wrong, the file will install cleanly and then do absolutely nothing, which is a miserable way to spend an evening.
+
+**Show it pictures.** Claude can't see your screen. A screenshot of what you've currently got, plus a description of what you want instead, is worth several paragraphs of explaining.
+
+Here's a prompt to start from — fill in the brackets and delete the option that isn't you:
+
+```
+I'd like a custom theme for claude.ai. I'm not a coder, so please
+explain anything I need to do on my end.
+
+I use [Stylus on Firefox/Chrome on desktop] / [Stylus on Firefox for
+Android] / [Userscripts on Safari on my iPhone], so I need a
+[.user.css file in UserCSS format] / [.user.js userscript file].
+
+The look I'm going for: [describe it — colours, light or dark, any
+font you like, whether message bubbles should be rounded, square,
+or some other shape, and the general mood].
+
+Please write the complete file, and tell me how to install it.
+```
+
+Then expect to go back and forth a bit. Screenshot what you get, say what looks wrong, let it adjust, repeat. Nothing arrives right on the first attempt — Strawberry Clouds went through a lot of rounds before it looked like it does now, and some of the best bits came out of fixing things that had broken.
+
+**Or start from one of these.** Open any theme file here, hand the whole thing to Claude, and ask for what you want changed. *"Make this one dark blue and green, and give the bubbles sharp corners"* is a perfectly good place to begin — and starting from something that already works saves you the fiddliest part.
 
 ---
 
