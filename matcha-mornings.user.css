@@ -1,0 +1,591 @@
+/* ==UserStyle==
+@name           Matcha Mornings — Claude.ai
+@namespace      neb.matcha.mornings
+@version        1.1.0
+@description    A soft sage-green matcha light theme for claude.ai — pale tea-and-cream sky, thin-line sprigs and arc fans, deep green ink, sage glass panels, and stitched deep-green message bubbles. Stylus build (CSS only): desktop Firefox/Chrome and Firefox Android.
+@author         neb (creative director) & Claude (implementation)
+@license        MIT
+@preprocessor   default
+==/UserStyle== */
+
+/* ====================================================================== *
+ *  MATCHA MORNINGS — STYLUS BUILD  v1.1.0
+ *
+ *  This is the SAME theme as matcha-mornings.user.js, derived from it
+ *  rather than rewritten, so the two can't drift apart. Version numbers
+ *  are kept in lockstep on purpose.
+ *
+ *  WHICH FILE DO I NEED?
+ *    · Stylus (desktop Firefox/Chrome, Firefox Android) -> this file
+ *    · Userscripts (iOS/macOS Safari)                   -> the .user.js
+ *
+ *  Stylus and Userscripts scope styles differently and are NOT
+ *  interchangeable: Stylus needs @-moz-document, which Safari ignores
+ *  entirely, while Userscripts scopes via @match.
+ *
+ *  THREE THINGS THE USERSCRIPT BUILD HAS AND THIS ONE CANNOT
+ *    1. Markdown rendering inside your own sent bubbles (Section 12).
+ *    2. The white halo on the "Claude is AI" disclaimer — that element
+ *       is found by its wording, which is a JS-only trick.
+ *    3. The gradient-overlay hunt behind "Show more"; here the class
+ *       hooks do that job alone.
+ *  Everything visual beyond those three is identical, including all of
+ *  the line art, which is inline SVG and needs no JavaScript at all.
+ * ====================================================================== */
+
+@-moz-document domain("claude.ai") {
+    /* ==== 1. Theme variables — HSL triplet format ====================== */
+    :root,
+    html,
+    html[data-mode="light"],
+    html[data-mode="dark"],
+    html.dark {
+      /* background ramp: lightest -> deepest */
+      --bg-000: 76 55% 97.5% !important;   /* dialogs, popovers    */
+      --bg-100: 84 46% 95.3% !important;   /* page pale sage       */
+      --bg-200: 88 38% 91.2% !important;   /* sidebar, panels      */
+      --bg-300: 90 34% 86.6% !important;   /* hover states         */
+      --bg-400: 92 30% 79.5% !important;   /* deep accents         */
+      --bg-500: 94 28% 71.5% !important;
+
+      /* text ramp: darkest -> lightest */
+      --text-000: 135 32% 13.5% !important;
+      --text-100: 133 29% 18.5% !important;  /* headings           */
+      --text-200: 132 24% 26.0% !important;  /* body deep green    */
+      --text-300: 130 20% 34.0% !important;
+      --text-400: 128 17% 44.0% !important;  /* muted              */
+      --text-500: 126 15% 55.0% !important;
+
+      /* borders in sage */
+      --border-100: 92 32% 84.0% !important;
+      --border-200: 94 30% 77.0% !important;
+      --border-300: 96 28% 69.0% !important;
+      --border-400: 98 26% 61.0% !important;
+
+      /* accents — matcha, not mint */
+      --accent-main-000: 82 34% 42% !important;
+      --accent-main-100: 82 36% 48% !important;
+      --accent-main-200: 82 38% 55% !important;
+      --accent-secondary-000: 140 26% 36% !important;
+      --accent-secondary-100: 140 28% 43% !important;
+      --accent-secondary-200: 140 30% 51% !important;
+      --accent-pro-000: 68 38% 44% !important;
+      --accent-pro-100: 68 40% 51% !important;
+      --accent-pro-200: 68 42% 58% !important;
+
+      color-scheme: light;
+
+      /* Chalkboard SE ships with iOS. Comic Neue is the friendly desktop
+         fallback if this is ever opened somewhere else. */
+      --mm-hand: 'Chalkboard SE', 'Chalkboard', 'Comic Neue', 'Marker Felt', 'Trebuchet MS', sans-serif;
+    }
+
+    /* ==== 2. The sky =================================================== */
+    /* Painted on <html> ONLY — if body carries a background too, it paints
+       over the decorative layers the moment the app hydrates. */
+
+    html {
+      background:
+        radial-gradient(ellipse 118% 64% at 84% -8%,  rgba(198, 224, 168, 0.58), transparent 62%),
+        radial-gradient(ellipse 96%  58% at 2%  108%, rgba(244, 240, 206, 0.62), transparent 58%),
+        radial-gradient(ellipse 72%  42% at 48% 44%,  rgba(240, 248, 228, 0.55), transparent 70%),
+        linear-gradient(168deg, #EDF4E1 0%, #F4F8EA 44%, #FAF8EC 100%) !important;
+      background-attachment: fixed !important;
+      background-color: #F2F7E9 !important;
+    }
+
+    body {
+      background: transparent !important;
+      background-color: transparent !important;
+    }
+
+    /* ==== 2b. Kill blur globally ======================================= */
+    /* Mobile Safari re-blurs live pixels every frame — the single most
+       expensive thing a theme can ask for. We fake glass instead. */
+    * {
+      -webkit-backdrop-filter: none !important;
+      backdrop-filter: none !important;
+    }
+
+    /* ==== 3. Sky layer: line art ======================================= */
+    /* v1.1.0 — the bokeh is gone. Two reasons it had to go: it was too
+       faint to read on a phone, and "soft blurred circles floating on a
+       pastel gradient" is structurally the same idea as Strawberry's
+       clouds, which made this theme look like a recolour rather than its
+       own thing. Line art solves both at once: LINES instead of
+       GRADIENTS is a real difference in kind, and a 1.2px stroke is
+       legible at a much lower opacity than a soft-edged blob is.
+
+       Two layers, both inline SVG data-URIs — no network request, no
+       image file to host, nothing to break if GitHub raw is slow:
+
+         ::before  two arc fans, static, anchored into the top-right and
+                   bottom-left corners. They are concentric quarter-arcs
+                   struck from a centre just OUTSIDE the viewport, so what
+                   you see is a ripple spreading in from the corner. They
+                   sit exactly where the html gradient already puts its
+                   two light sources, so the drawing agrees with the light
+                   instead of fighting it.
+
+         ::after   a 300px tile of thin-line sprigs, drifting very slowly
+                   sideways. The drift distance is exactly ONE tile width,
+                   so the loop is seamless by construction rather than by
+                   luck — no jump at the restart no matter the screen size.
+                   Compositor-only transform, same battery cost as
+                   Strawberry's cloud drift.                             */
+
+    /* --- corner arc fans (static) --- */
+    html::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420' viewBox='0 0 420 420'%3E %3Ccircle cx='420' cy='0' r='110' fill='none' stroke='%233F5F38' stroke-width='1.2' stroke-opacity='0.2'/%3E %3Ccircle cx='420' cy='0' r='148' fill='none' stroke='%233F5F38' stroke-width='1.2' stroke-opacity='0.181'/%3E %3Ccircle cx='420' cy='0' r='186' fill='none' stroke='%233F5F38' stroke-width='1.2' stroke-opacity='0.162'/%3E %3Ccircle cx='420' cy='0' r='226' fill='none' stroke='%233F5F38' stroke-width='1.2' stroke-opacity='0.143'/%3E %3Ccircle cx='420' cy='0' r='268' fill='none' stroke='%233F5F38' stroke-width='1.2' stroke-opacity='0.124'/%3E %3Ccircle cx='420' cy='0' r='312' fill='none' stroke='%233F5F38' stroke-width='1.2' stroke-opacity='0.105'/%3E %3Ccircle cx='420' cy='0' r='358' fill='none' stroke='%233F5F38' stroke-width='1.2' stroke-opacity='0.086'/%3E %3Ccircle cx='420' cy='0' r='406' fill='none' stroke='%233F5F38' stroke-width='1.2' stroke-opacity='0.067'/%3E %3C/svg%3E"),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420' viewBox='0 0 420 420'%3E %3Ccircle cx='0' cy='420' r='110' fill='none' stroke='%233F5F38' stroke-width='1.2' stroke-opacity='0.2'/%3E %3Ccircle cx='0' cy='420' r='148' fill='none' stroke='%233F5F38' stroke-width='1.2' stroke-opacity='0.181'/%3E %3Ccircle cx='0' cy='420' r='186' fill='none' stroke='%233F5F38' stroke-width='1.2' stroke-opacity='0.162'/%3E %3Ccircle cx='0' cy='420' r='226' fill='none' stroke='%233F5F38' stroke-width='1.2' stroke-opacity='0.143'/%3E %3Ccircle cx='0' cy='420' r='268' fill='none' stroke='%233F5F38' stroke-width='1.2' stroke-opacity='0.124'/%3E %3Ccircle cx='0' cy='420' r='312' fill='none' stroke='%233F5F38' stroke-width='1.2' stroke-opacity='0.105'/%3E %3Ccircle cx='0' cy='420' r='358' fill='none' stroke='%233F5F38' stroke-width='1.2' stroke-opacity='0.086'/%3E %3Ccircle cx='0' cy='420' r='406' fill='none' stroke='%233F5F38' stroke-width='1.2' stroke-opacity='0.067'/%3E %3C/svg%3E");
+      background-position: right top, left bottom;
+      background-repeat: no-repeat, no-repeat;
+      background-size:
+        min(94vw, 470px) min(94vw, 470px),
+        min(88vw, 440px) min(88vw, 440px);
+    }
+
+    /* --- drifting sprig tile --- */
+    html::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: -300px;
+      z-index: -1;
+      pointer-events: none;
+      width: calc(100% + 600px);
+      height: 100%;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E %3Cg transform='translate(40 108) rotate(-16) scale(1.55)'%3E %3Cg stroke='%233F5F38' stroke-width='1.15' fill='none' stroke-linecap='round' stroke-opacity='0.185'%3E %3Cpath d='M0 0 C5 -10 7 -22 5 -34'/%3E %3Cpath d='M2 -8 C-4 -12 -8 -10 -9 -5 C-4 -4 -1 -5 2 -8 Z'/%3E %3Cpath d='M3 -14 C9 -19 13 -18 14 -13 C9 -11 6 -12 3 -14 Z'/%3E %3Cpath d='M4 -21 C-2 -25 -6 -24 -7 -19 C-2 -17 1 -18 4 -21 Z'/%3E %3Cpath d='M5 -27 C11 -31 15 -30 16 -25 C11 -23 8 -24 5 -27 Z'/%3E %3C/g%3E %3C/g%3E %3Cg transform='translate(162 58) rotate(24) scale(0.92)'%3E %3Cg stroke='%233F5F38' stroke-width='1.15' fill='none' stroke-linecap='round' stroke-opacity='0.15'%3E %3Cpath d='M0 0 C5 -10 7 -22 5 -34'/%3E %3Cpath d='M2 -8 C-4 -12 -8 -10 -9 -5 C-4 -4 -1 -5 2 -8 Z'/%3E %3Cpath d='M3 -14 C9 -19 13 -18 14 -13 C9 -11 6 -12 3 -14 Z'/%3E %3Cpath d='M4 -21 C-2 -25 -6 -24 -7 -19 C-2 -17 1 -18 4 -21 Z'/%3E %3Cpath d='M5 -27 C11 -31 15 -30 16 -25 C11 -23 8 -24 5 -27 Z'/%3E %3C/g%3E %3C/g%3E %3Cg transform='translate(232 148) rotate(-46) scale(0.7)'%3E %3Cg stroke='%233F5F38' stroke-width='1.15' fill='none' stroke-linecap='round' stroke-opacity='0.13'%3E %3Cpath d='M0 0 C5 -10 7 -22 5 -34'/%3E %3Cpath d='M2 -8 C-4 -12 -8 -10 -9 -5 C-4 -4 -1 -5 2 -8 Z'/%3E %3Cpath d='M3 -14 C9 -19 13 -18 14 -13 C9 -11 6 -12 3 -14 Z'/%3E %3Cpath d='M4 -21 C-2 -25 -6 -24 -7 -19 C-2 -17 1 -18 4 -21 Z'/%3E %3Cpath d='M5 -27 C11 -31 15 -30 16 -25 C11 -23 8 -24 5 -27 Z'/%3E %3C/g%3E %3C/g%3E %3Cg transform='translate(96 224) rotate(9) scale(1.2)'%3E %3Cg stroke='%233F5F38' stroke-width='1.15' fill='none' stroke-linecap='round' stroke-opacity='0.165'%3E %3Cpath d='M0 0 C5 -10 7 -22 5 -34'/%3E %3Cpath d='M2 -8 C-4 -12 -8 -10 -9 -5 C-4 -4 -1 -5 2 -8 Z'/%3E %3Cpath d='M3 -14 C9 -19 13 -18 14 -13 C9 -11 6 -12 3 -14 Z'/%3E %3Cpath d='M4 -21 C-2 -25 -6 -24 -7 -19 C-2 -17 1 -18 4 -21 Z'/%3E %3Cpath d='M5 -27 C11 -31 15 -30 16 -25 C11 -23 8 -24 5 -27 Z'/%3E %3C/g%3E %3C/g%3E %3Cg transform='translate(250 282) rotate(-28) scale(1.0)'%3E %3Cg stroke='%233F5F38' stroke-width='1.15' fill='none' stroke-linecap='round' stroke-opacity='0.155'%3E %3Cpath d='M0 0 C5 -10 7 -22 5 -34'/%3E %3Cpath d='M2 -8 C-4 -12 -8 -10 -9 -5 C-4 -4 -1 -5 2 -8 Z'/%3E %3Cpath d='M3 -14 C9 -19 13 -18 14 -13 C9 -11 6 -12 3 -14 Z'/%3E %3Cpath d='M4 -21 C-2 -25 -6 -24 -7 -19 C-2 -17 1 -18 4 -21 Z'/%3E %3Cpath d='M5 -27 C11 -31 15 -30 16 -25 C11 -23 8 -24 5 -27 Z'/%3E %3C/g%3E %3C/g%3E %3Cg transform='translate(18 296) rotate(38) scale(0.62)'%3E %3Cg stroke='%233F5F38' stroke-width='1.15' fill='none' stroke-linecap='round' stroke-opacity='0.125'%3E %3Cpath d='M0 0 C5 -10 7 -22 5 -34'/%3E %3Cpath d='M2 -8 C-4 -12 -8 -10 -9 -5 C-4 -4 -1 -5 2 -8 Z'/%3E %3Cpath d='M3 -14 C9 -19 13 -18 14 -13 C9 -11 6 -12 3 -14 Z'/%3E %3Cpath d='M4 -21 C-2 -25 -6 -24 -7 -19 C-2 -17 1 -18 4 -21 Z'/%3E %3Cpath d='M5 -27 C11 -31 15 -30 16 -25 C11 -23 8 -24 5 -27 Z'/%3E %3C/g%3E %3C/g%3E %3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 300px 300px;
+      animation: mmSway 210s linear infinite;
+      will-change: transform;
+    }
+
+    @keyframes mmSway {
+      from { transform: translate3d(0, 0, 0); }
+      to   { transform: translate3d(-300px, 0, 0); }
+    }
+
+    /* ==== 4. Fake glass: panels, menus, dialogs ======================== */
+
+    nav,
+    aside,
+    [class*="sidebar"] {
+      background: linear-gradient(180deg,
+        rgba(250, 253, 244, 0.93) 0%,
+        rgba(233, 243, 220, 0.94) 100%) !important;
+      border-right: 1px solid rgba(168, 194, 138, 0.42) !important;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        0 6px 26px rgba(126, 158, 92, 0.13) !important;
+    }
+
+    [role="dialog"],
+    [role="menu"],
+    [role="listbox"],
+    [role="tooltip"],
+    [data-radix-popper-content-wrapper] > div,
+    [data-radix-menu-content] {
+      background: linear-gradient(160deg,
+        rgba(251, 254, 246, 0.90) 0%,
+        rgba(230, 242, 216, 0.92) 100%) !important;
+      border: 1px solid rgba(160, 188, 128, 0.52) !important;
+      border-radius: 1.25rem !important;
+      color: #34513A !important;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        0 10px 34px rgba(120, 152, 88, 0.20) !important;
+    }
+
+    /* the site's own surface utilities go translucent so the sky shows */
+    .bg-bg-000 { background-color: rgba(251, 254, 246, 0.72) !important; }
+    .bg-bg-100 { background-color: rgba(244, 250, 234, 0.62) !important; }
+    .bg-bg-200 { background-color: rgba(232, 243, 218, 0.66) !important; }
+    .bg-bg-300 { background-color: rgba(220, 236, 202, 0.74) !important; }
+
+    /* ==== 5. Top bar — let the sky through ============================= */
+    /* Don't paint the bar. Clear it and color the text. */
+    header {
+      background: transparent !important;
+      background-color: transparent !important;
+      box-shadow: none !important;
+      border-bottom: none !important;
+    }
+    header :is(div, span, a, h1, h2, button) {
+      color: #34513A !important;
+    }
+    header :is(h1, h2, [class*="truncate"]) {
+      font-family: var(--font-serif, "Copernicus", "Tiempos Text", Georgia, serif) !important;
+    }
+    /* Icon-only header controls ride bare on the sky */
+    header :is(button, a):not(:has([class*="truncate"])) {
+      background: transparent !important;
+      background-image: none !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+    }
+
+    /* the chat-title pill — sage gradient. Found by the truncated title it
+       wraps, since the pill itself has no stable name. */
+    header button:has([class*="truncate"]),
+    header [role="button"]:has([class*="truncate"]) {
+      background: linear-gradient(135deg,
+        #DCEBC4 0%,
+        #D2E6BA 46%,
+        #E4EFC8 100%) !important;
+      border: 1px solid rgba(150, 180, 116, 0.55) !important;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
+    }
+    /* the pill's inner layers carry their own near-white fills — clear
+       them so the gradient is the only thing painting */
+    header button:has([class*="truncate"]) > *,
+    header [role="button"]:has([class*="truncate"]) > * {
+      background: transparent !important;
+      background-image: none !important;
+    }
+    header button:has([class*="truncate"]),
+    header button:has([class*="truncate"]) :is(span, div, h1, h2),
+    header button:has([class*="truncate"]) svg {
+      color: #2C4632 !important;
+    }
+
+    /* ==== 5b. Share ====================================================
+       Share is NOT in the header — it rides in the chat-body container
+       div[data-testid="wiggle-controls-actions"], pinned to the top-right
+       corner. It carries a stable testid, so no hunting is needed.
+       Nothing in its ancestor chain paints; the white pill is drawn by the
+       button's own pseudo-element, so we mute that and let the button
+       paint. The ring is an inset box-shadow, not a border, because the
+       button ships border-0 and a real border would nudge the bar 2px. */
+    [data-testid="wiggle-controls-actions-share"] {
+      background: linear-gradient(135deg,
+        #EAF3DA 0%,
+        #E2EFCE 52%,
+        #EFF5DC 100%) !important;
+      border-radius: 0.7rem !important;
+      box-shadow:
+        inset 0 0 0 1px rgba(156, 184, 122, 0.60),
+        inset 0 1px 0 rgba(255, 255, 255, 0.78) !important;
+      color: #2C4632 !important;
+    }
+    [data-testid="wiggle-controls-actions-share"]::before,
+    [data-testid="wiggle-controls-actions-share"]::after {
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+    /* muting the pseudo-element takes the press/hover state with it, so
+       give it back: the same sage, one notch brighter */
+    [data-testid="wiggle-controls-actions-share"]:hover,
+    [data-testid="wiggle-controls-actions-share"]:active {
+      background: linear-gradient(135deg,
+        #F4FAE8 0%,
+        #EEF7DE 52%,
+        #F7FBEC 100%) !important;
+    }
+    [data-testid="wiggle-controls-actions-share"] :is(span, div, p, svg) {
+      background: transparent !important;
+      background-image: none !important;
+      color: #2C4632 !important;
+    }
+
+    /* ==== 6. Composer — sage glass with a green bloom ================== */
+    /* Per the brief, the bloom is a touch stronger here than Strawberry's:
+       three stacked shadows, the middle one doing the actual glowing. */
+
+    fieldset {
+      background: linear-gradient(155deg,
+        rgba(252, 254, 248, 0.90) 0%,
+        rgba(233, 244, 220, 0.92) 100%) !important;
+      border: 1px solid rgba(150, 182, 114, 0.60) !important;
+      border-radius: 1.6rem !important;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.98),
+        0 0 28px rgba(134, 172, 88, 0.34),
+        0 0 56px rgba(150, 186, 104, 0.16),
+        0 6px 30px rgba(112, 146, 78, 0.16) !important;
+    }
+
+    /* clear the stacked inner layers so one clean pane of glass shows */
+    fieldset div,
+    fieldset div[class],
+    fieldset div[class] div[class] {
+      background-color: transparent !important;
+      background-image: none !important;
+    }
+
+    form:has(fieldset) {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    /* ==== 6c. The dock ================================================= *
+     * The strip the composer sits in fades from clear at the top to solid
+     * pale sage at the bottom, so scrolling text dissolves instead of
+     * colliding with the composer and the disclaimer.
+     *
+     * CSS-ONLY SUBSTITUTE: the userscript build tags this container in JS
+     * (docker()), because it has no stable class. Here we reach it
+     * structurally instead — the div that DIRECTLY contains the composer's
+     * form. Deliberately kept to a direct-child match so it can't creep up
+     * the tree and paint half the page, which is the failure mode that
+     * bloated Strawberry v1.3.2.                                          */
+
+    div:has(> form:has(fieldset)) {
+      background: linear-gradient(to bottom,
+        rgba(244, 250, 234, 0)    0%,
+        rgba(244, 250, 234, 0.72) 14%,
+        rgba(242, 249, 231, 0.94) 34%,
+        #F2F8E7                   62%) !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    /* NOTE: the userscript build gives the "Claude is AI" disclaimer a
+       white halo, found by a text hunt in JS. There's no CSS-only way to
+       select an element by its wording, so that rule is absent here — the
+       quiet-text rules in Section 9 still colour it correctly.          */
+
+    /* composer chrome: model name, icons, the + button */
+    fieldset, fieldset * {
+      color: #4C6B4F !important;
+    }
+
+    /* what you type — same voice as what you send */
+    div[contenteditable="true"],
+    div[contenteditable="true"] p,
+    textarea {
+      background-color: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      color: #2F4A34 !important;
+      caret-color: #6E9142 !important;
+      font-family: var(--mm-hand) !important;
+      font-size: 1.04em !important;
+    }
+    ::placeholder,
+    div[contenteditable="true"] p[data-placeholder]::before,
+    [contenteditable] [data-placeholder]::before {
+      color: #9AAF93 !important;
+      opacity: 1 !important;
+      font-family: var(--mm-hand) !important;
+    }
+
+    /* ==== 6b. Send button — matcha ===================================== */
+    button[aria-label*="send" i],
+    fieldset button[type="submit"],
+    .bg-accent-main-000,
+    .bg-accent-main-100,
+    .bg-accent-main-200 {
+      background: linear-gradient(135deg, #6E9142 0%, #86AB52 55%, #A8C46A 100%) !important;
+      border: 1px solid rgba(214, 234, 178, 0.70) !important;
+      border-radius: 0.95rem !important;
+      overflow: hidden !important;
+      box-shadow:
+        0 0 14px rgba(126, 163, 82, 0.48),
+        inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+    }
+    button[aria-label*="send" i] *,
+    fieldset button[type="submit"] * {
+      background: transparent !important;
+      background-image: none !important;
+      color: #ffffff !important;
+    }
+
+    /* ==== 7. YOUR bubble — the stitched patch ========================== */
+    /*
+     *  Deep green fill, rounded corners, white dashed line inset from the
+     *  edge. Three notes on why it's built this way:
+     *
+     *  1. The stitch is an inset PSEUDO-ELEMENT with a dashed border, not
+     *     'outline: dashed' with a negative offset. Outline only follows
+     *     border-radius on newer Safari; on older builds it would render as
+     *     a hard rectangle around a rounded bubble.
+     *  2. The pseudo-element sits entirely INSIDE the box, so nothing
+     *     overhangs, no ancestor needs its overflow meddled with, and
+     *     claude.ai's own "Show more" clipping keeps working.
+     *  3. Padding is generous so the text clears the stitching. If a line
+     *     of text ever touches the dashes, raise the padding, don't move
+     *     the inset.
+     */
+
+    /* clear the ancestor wrappers (the ghost rectangle) — but DO NOT touch
+       overflow here */
+    div:has(> [data-testid="user-message"]),
+    div:has(> div > [data-testid="user-message"]),
+    div:has(> div > div > [data-testid="user-message"]),
+    div:has(> div > div > div > [data-testid="user-message"]) {
+      background: transparent !important;
+      background-color: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+    }
+    div:has([data-testid="user-message"])::before,
+    div:has([data-testid="user-message"])::after {
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+
+    [data-testid="user-message"] {
+      position: relative !important;
+      background: linear-gradient(158deg, #43663F 0%, #3E5F42 52%, #385A40 100%) !important;
+      color: #F6FBF0 !important;
+      border: none !important;
+      border-radius: 1.15rem !important;
+      padding: 0.95rem 1.05rem !important;
+      box-shadow:
+        0 2px 12px rgba(72, 100, 60, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.10) !important;
+    }
+
+    /* the stitching */
+    [data-testid="user-message"]::before {
+      content: '';
+      position: absolute;
+      inset: 6px;
+      border: 2px dashed rgba(246, 251, 240, 0.92);
+      border-radius: 0.82rem;
+      pointer-events: none;
+    }
+
+    [data-testid="user-message"] :is(p, li, span, div) {
+      color: #F6FBF0 !important;
+    }
+
+    /* Chalkboard SE throughout the bubble. It runs a little wide, so it
+       gets a slightly tighter size than Bradley Hand did and a touch more
+       line-height to stay comfortable on a phone. Inline code is exempt:
+       monospace has to stay monospace to be worth anything. */
+    [data-testid="user-message"],
+    [data-testid="user-message"] :is(p, li, span, div, strong, b, em, i, del, blockquote) {
+      font-family: var(--mm-hand) !important;
+    }
+    [data-testid="user-message"] :is(p, li, blockquote) {
+      font-size: 1.0em !important;
+      line-height: 1.66 !important;
+    }
+    [data-testid="user-message"] :is(code, pre, code *, pre *) {
+      font-family: ui-monospace, Menlo, Consolas, monospace !important;
+      font-size: 0.88em !important;
+    }
+
+    /* ==== 7b. The collapse fade ======================================== *
+     * When a long message collapses behind "Show more", claude.ai lays a
+     * gradient over the last lines to fade them out — toward its own
+     * neutral, which reads as a grey rectangle inside our green patch.
+     * Repaint it in the bubble's own colour so text dissolves into the
+     * bubble instead of into a grey box.
+     *
+     * Two ways in, because the overlay's class names aren't guaranteed:
+     * the Tailwind-ish hooks below. (The userscript build also tags the
+     * overlay in JS by detecting which child actually paints a gradient;
+     * CSS alone can't do that, so here the class hooks stand on their own.)
+     */
+
+    [data-testid="user-message"] [class*="to-bg-"],
+    [data-testid="user-message"] [class*="from-bg-"],
+    [data-testid="user-message"] [class*="bg-gradient"] {
+      background-color: transparent !important;
+      background-image: linear-gradient(to bottom,
+        rgba(62, 95, 66, 0)    0%,
+        rgba(62, 95, 66, 0.70) 40%,
+        rgba(62, 95, 66, 0.96) 76%,
+        #3E5F42                100%) !important;
+    }
+
+    /* "Show more" / "Show less" */
+    div:has(> [data-testid="user-message"]) button {
+      color: #5F8038 !important;
+    }
+
+    /* ==== 8. Claude's messages ========================================= */
+
+    .font-claude-message,
+    .font-claude-response,
+    [data-testid="assistant-message"] {
+      background: transparent !important;
+    }
+
+    body :is(p, li, blockquote, td, th, figcaption, summary):not(pre *):not(code):not(code *) {
+      color: #34513A !important;
+    }
+    body :is(h1, h2, h3, h4, h5, h6, strong, b):not(pre *):not(code *) {
+      color: #1F3524 !important;
+    }
+
+    /* the bubble wins back its own colours — the two rules above are
+       document-wide, so they'd otherwise repaint the text inside the
+       green patch back to dark green on dark green */
+    [data-testid="user-message"] :is(p, li, blockquote, td, th, summary),
+    [data-testid="user-message"] :is(h1, h2, h3, h4, h5, h6, strong, b) {
+      color: #F6FBF0 !important;
+    }
+
+    /* italic action text gets a soft sage halo — static, so it costs one
+       paint instead of a repaint every frame forever */
+    .font-claude-message :is(em, i),
+    .font-claude-response :is(em, i),
+    [data-testid="assistant-message"] :is(em, i) {
+      color: #5F8038 !important;
+      text-shadow:
+        0 0 7px rgba(178, 210, 138, 0.80),
+        0 0 16px rgba(198, 224, 164, 0.45);
+    }
+
+    /* ==== 9. Quiet text stays quiet (thinking block, timestamps) ======= */
+    body :is(p, li, span, div, summary):is([class*="text-text-3"], [class*="text-text-4"], [class*="text-text-5"]):not(pre *):not(code *),
+    body :is([class*="text-text-3"], [class*="text-text-4"], [class*="text-text-5"]) :is(p, li, span, div):not(pre *):not(code *) {
+      color: #8FA389 !important;
+    }
+    div[class*="grid-template-rows"] :is(p, li, span, div):not(pre *):not(code *),
+    div[class*="grid-template-rows"] svg {
+      color: #8FA389 !important;
+    }
+    div[class*="grid-template-rows"] * {
+      border-color: #DAE9C6 !important;
+    }
+
+    /* ==== 10. Buttons & icons ========================================== */
+    button:not([aria-label*="Send" i]):not([type="submit"]),
+    button:not([aria-label*="Send" i]):not([type="submit"]) :is(span, div, p),
+    button:not([aria-label*="Send" i]):not([type="submit"]) svg {
+      color: #4C6B4F !important;
+    }
+
+    /* ==== 11. Ambience ================================================= */
+    ::selection {
+      background: rgba(174, 206, 132, 0.55);
+      color: #23381F;
+    }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(146, 178, 110, 0.45);
+      border-radius: 8px;
+    }
+    ::-webkit-scrollbar-track { background: transparent; }
+
+    pre, code {
+      background-color: rgba(238, 247, 226, 0.85) !important;
+    }
+
+    /* ==== 12. (Markdown bloom — userscript only) =======================
+       The .user.js build repaints YOUR sent bubbles so **bold**, *italics*,
+       \`code\`, # headers and ~~strikes~~ render. That needs JavaScript, so
+       it is absent here by necessity, and the styling that dressed those
+       rendered marks is absent with it. Everything else in this file is
+       identical to the userscript build.                                 */
+
+    /* ==== 13. Reduced motion =========================================== */
+    @media (prefers-reduced-motion: reduce) {
+      html::after { animation: none; }
+    }
+  
+}
