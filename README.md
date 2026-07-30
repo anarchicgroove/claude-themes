@@ -90,7 +90,6 @@ To turn it off later, open the Userscripts app and toggle the theme off.
 ## Notes
 
 - These themes are designed around the **mobile** claude.ai layout, so they look their best on a phone. They work on desktop too, just with more empty space at the edges.
-- If a pale theme looks washed out or nearly white on a desktop monitor, check your **monitor's contrast setting** before blaming the theme — a contrast of 100 clips light colours to pure white and flattens the whole palette. Turning it down to around 50 usually brings everything back.
 - Claude's own interface changes from time to time. If a theme suddenly looks half-broken, that's usually why — open an issue and I'll take a look.
 
 ---
