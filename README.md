@@ -4,6 +4,11 @@ Pretty CSS themes for [claude.ai](https://claude.ai) — soft palettes, custom f
 
 No coding needed. You install one browser extension, click one link, and your Claude looks different.
 
+> [!IMPORTANT]
+> **Set claude.ai's own light/dark setting to match the theme before you install.**
+>
+> A light theme needs claude.ai in **light mode**; a dark theme needs it in **dark mode**. Get this wrong and parts of the interface — the model picker, some menus — will be unreadable, and the theme will look broken when it isn't. It's in claude.ai's own settings, not the extension's.
+
 ---
 
 ## Which file do I need?
@@ -41,6 +46,11 @@ A soft sage-green light theme. Pale tea and cream, thin hand-drawn ferns driftin
 ---
 
 ## How to install
+
+> [!IMPORTANT]
+> **Set claude.ai's own light/dark setting to match the theme before you install.**
+>
+> A light theme needs claude.ai in **light mode**; a dark theme needs it in **dark mode**. Get this wrong and parts of the interface — the model picker, some menus — will be unreadable, and the theme will look broken when it isn't. It's in claude.ai's own settings, not the extension's.
 
 <details>
 <summary><b>💻 Stylus — Firefox or Chrome on desktop</b></summary>
