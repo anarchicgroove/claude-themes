@@ -38,60 +38,6 @@
    *      so the icon font is left to do its job. Tagged glyphs are
    *      painted phosphor inline so they join the theme.
    *
-   *  CHANGELOG v1.3.0
-   *    · THE ICONS, ACTUALLY THIS TIME. v1.2.0 built the right machine
-   *      and then fed it a bad test. paintIcon() decided ONCE PER ICON
-   *      whether the whole thing was an outline drawing, and if any
-   *      single shape anywhere inside it said fill="none", it treated
-   *      every other shape as outlined too and refused to fill them.
-   *      Most claude.ai icons are mixed — a filled body with an unfilled
-   *      detail cut into it — so the ones with any hollow part at all
-   *      kept inheriting the document's default fill, which is black,
-   *      on a black page. The icons in an open menu are pure outline
-   *      drawings, which is the entire reason THOSE worked and the
-   *      sidebar, the drawer toggle, the + key and the chevrons didn't.
-   *      The test is now made per SHAPE instead of per icon.
-   *    · And because I have now been wrong about this three times in a
-   *      row, there is a second pass that does not guess at all:
-   *      verify() reads the COMPUTED fill and stroke of every shape
-   *      after painting, and anything the browser is actually about to
-   *      draw in near-black gets phosphor instead. It does not care how
-   *      the icon was authored. See the note above it.
-   *
-   *  CHANGELOG v1.2.0
-   *    · THE ICONS, PROPERLY THIS TIME. Two rounds of CSS guessed at
-   *      where those icons live and what they are made of, and both
-   *      guesses lost. The one thing that DID land in v1.1.0 was the
-   *      pixel arrow — because it is drawn from nothing and depends on
-   *      no markup at all. So the fix has moved to JS: iconize() finds
-   *      every icon on the page, works out from the element itself
-   *      whether it is an outline icon, a solid icon or a masked one,
-   *      and writes the paint back as an INLINE !important style.
-   *      Inline important beats every stylesheet in the document, so it
-   *      no longer matters which container they sit in or which of the
-   *      three techniques claude.ai used to draw them.
-   *    · Belt and braces: the dim end of the text ramp came up too, so
-   *      that any icon riding a --text-400 / --text-500 variable is
-   *      legible even if the JS never reaches it.
-   *    · Binary 0.10 -> 0.24, vignette 0.55 -> 0.42, scanlines 0.22 ->
-   *      0.18. The last two were quietly eating the first one: the
-   *      binary sits UNDER both, so every point I added was being
-   *      partly taken back. Raising one number and not the others is
-   *      why the last bump did nothing you could see.
-   *
-   *  CHANGELOG v1.1.0
-   *    · THE ICON BUG. Sidebar rows, top bar, composer chrome and the
-   *      message action buttons were all invisible. Five symptoms, one
-   *      cause: those icons declare no paint of their own and inherit
-   *      fill from the document, which on a black page means black on
-   *      black. Colouring them was never going to be enough — the fill
-   *      had to be given back. New Section 14 does exactly that, and is
-   *      written to leave multi-colour brand marks alone.
-   *    · The send key now draws its own PIXEL ARROW, nineteen white
-   *      blocks made of box-shadows. The native glyph is hidden, which
-   *      also sidesteps whatever was eating it.
-   *    · Binary opacity 0.05 -> 0.10. It was texture; now it is texture
-   *      you can actually see.
    *
    *  Forked from Ink & Candlelight v1.3.0, which came from Matcha
    *  Mornings v1.1.0, which came from Strawberry Clouds v1.3.7. As
