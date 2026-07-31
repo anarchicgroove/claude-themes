@@ -19,7 +19,7 @@
    *
    *  CHANGELOG v1.4.0
    *    · THE ICONS WERE NEVER INVISIBLE. THEY WERE GONE — and this
-   *      theme is what removed them. Samara's observation, and it
+   *      theme is what removed them. Sam's observation, and it
    *      cracked the case: some claude.ai icons are not svg drawings
    *      but CHARACTERS — one private-use glyph in a span, rendered by
    *      an icon font. Phosphor forces monospace onto every span in
