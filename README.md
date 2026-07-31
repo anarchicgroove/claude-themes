@@ -23,6 +23,8 @@ There are two versions of every theme. Pick based on **which extension you're us
 
 Both give you the same look. The Safari version just does a little bit more, because Userscripts can run JavaScript and Stylus can't.
 
+*One exception right now: **Ink & Candlelight** is Userscripts-only while its Stylus version is still being tested. It'll be up shortly.*
+
 ---
 
 ## Themes
@@ -42,6 +44,16 @@ A soft sage-green light theme. Pale tea and cream, thin hand-drawn ferns driftin
 <img src="matcha-mornings/preview-3.jpg" alt="Matcha Mornings" width="300">
 
 **Install →** [Stylus version](https://raw.githubusercontent.com/anarchicgroove/claude-themes/main/matcha-mornings/matcha-mornings.user.css) · [Userscripts version](https://github.com/anarchicgroove/claude-themes/blob/main/matcha-mornings/matcha-mornings.user.js)
+
+### 🕯️ Ink & Candlelight
+
+A warm near-black dark theme — an old book in a room with one lamp on. Brown-black rather than blue-black, a proper book serif, bone-parchment text, and sharp corners everywhere. Your messages aren't filled in; they're framed by a fine line, backlit as though the same candle were behind them, with a single deep oxblood red used sparingly enough that it still means something.
+
+<img src="ink-and-candlelight/preview-5.jpg" alt="Ink & Candlelight" width="300">
+
+*This is a **dark** theme — set claude.ai to dark mode before you install it.*
+
+**Install →** [Userscripts version](https://github.com/anarchicgroove/claude-themes/blob/main/ink-and-candlelight/ink-and-candlelight.user.js) *(Stylus version coming soon)*
 
 ---
 
