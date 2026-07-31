@@ -1,0 +1,942 @@
+// ==UserScript==
+// @name         Ink & Candlelight — Claude.ai
+// @namespace    neb.ink.candlelight
+// @version      1.3.0
+// @description  A warm near-black dark theme for claude.ai — lamplit paper, book serifs, bone-parchment ink, sharp corners, unfilled hairline message bubbles, and a single oxblood accent used sparingly. Battery-conscious: no backdrop-blur, one slow opacity animation. Client-side only.
+// @author        neb (creative director) & Claude (implementation)
+// @match        https://claude.ai/*
+// @match        https://*.claude.ai/*
+// @run-at       document-start
+// @inject-into  content
+// @grant        none
+// ==/UserScript==
+
+(function () {
+  'use strict';
+
+  /* ==================================================================== *
+   *  INK & CANDLELIGHT  v1.1.0
+   *
+   *  CHANGELOG v1.3.0
+   *    · Message bubbles are now backlit — a soft amber bloom around the
+   *      hairline, in the lamp's colour rather than the accent's, so the
+   *      bubble reads as lit by the same flame as the room. Static, for
+   *      battery reasons documented at the rule itself.
+   *
+   *  CHANGELOG v1.2.0
+   *    · The book crease is gone. It was a nice idea that lost to
+   *      geometry: the composer sits on top of the lower half of the
+   *      left margin, cutting the fold in two and breaking the illusion
+   *      exactly where it needed to be continuous. Nothing to be done
+   *      about that short of moving the composer.
+   *    · The sidebar's peeking hairline is properly gone now — divider
+   *      moved from border-right to an inset shadow. See Section 4.
+   *
+   *  CHANGELOG v1.1.0
+   *    · Sidebar icons were stark white — Section 10 only reached
+   *      buttons, and sidebar rows are anchors. Now parchment.
+   *    · Sidebar text was oxblood (every <a> got the accent). Moved to
+   *      parchment, with the red reserved for the current row. Rationale
+   *      in Section 9b; this is the theme's central discipline.
+   *    · The 1px sidebar edge that peeked past the closed drawer is now
+   *      a deliberate 15px book crease down the left margin.
+   *
+   *  Forked from Matcha Mornings v1.1.0, which was forked from Strawberry
+   *  Clouds v1.3.7. Structure inherited; flavour rebuilt. As before, this
+   *  header records only what CHANGED, so the seam stays legible.
+   *
+   *  THE IDEA
+   *  An old book in a room with one lamp on.
+   *
+   *  This theme is deliberately AUSTERE, and that is a design position
+   *  rather than a shortcut. The obvious move with a dark theme is to
+   *  make it cool — neon, glow, drama. That belongs to a different theme.
+   *  This one earns its mood by restraint: warm black instead of blue
+   *  black, a book serif instead of a display face, sharp corners
+   *  everywhere, and exactly ONE accent colour, spent so sparingly it
+   *  reads as a secret. One red thing in a dim room is worth ten.
+   *
+   *  WHAT CARRIED OVER UNTOUCHED (the structure)
+   *    · HSL-triplet variable overrides.
+   *    · Room painted on <html> only, never on <body>.
+   *    · Global backdrop-filter kill; glass faked with translucent fills.
+   *    · Top bar cleared rather than painted; Share found by data-testid.
+   *    · The dock fade + disclaimer halo via the docker() text hunt.
+   *    · The markdown bloom and the fade-hunter, verbatim except class
+   *      prefixes (mm- -> ic-).
+   *
+   *  WHAT CHANGED (the flavour)
+   *    · This is the first DARK theme in the set, which inverts the text
+   *      ramp: --text-000 is now the BRIGHTEST value rather than the
+   *      darkest, because claude.ai uses 000 for its strongest ink and
+   *      strongest ink on black means palest. Getting this backwards
+   *      produces a theme that looks fine until you open a menu.
+   *    · No decorative artwork. No clouds, no bokeh, no sprigs. In place
+   *      of a pattern there is a lamp: one warm pool of light from above,
+   *      a vignette pulling the corners down, and a barely-there paper
+   *      grain so the black doesn't read as flat digital nothing.
+   *    · The lamp BREATHES — one opacity animation, 16s, and a range so
+   *      narrow you should never consciously catch it moving. A candle
+   *      that isn't flickering but is alive. Not a flicker effect: real
+   *      flicker is distracting to read against and murder on battery.
+   *    · Bubbles are UNFILLED. Sharp corners, a bone hairline, and a
+   *      single oxblood rule down the left edge like a mark in a margin.
+   *      Your messages are distinguished from Claude's by their FRAME,
+   *      not by their fill, which is the opposite of every other theme
+   *      in this set.
+   *    · Serif everywhere, including the composer — Iowan Old Style,
+   *      which ships with iOS and is a genuine book face rather than a
+   *      screen face. Deliberately NOT claude.ai's own serif, so the
+   *      theme doesn't read as "the default, but darker".
+   *
+   *  PALETTE
+   *    room        #171310    page       #1A1512    panels  #211B17
+   *    lamp        rgba(140, 98, 54, ~.30)          vignette black ~.45
+   *    parchment   #E6DCC8    headings   #F3EBDA    muted   #9A8D7A
+   *    oxblood     #7A2230    lit oxblood #9B3040   deep    #5A1922
+   *
+   *  BATTERY BUDGET
+   *    · NO backdrop-filter anywhere.
+   *    · ONE animation in the entire theme, and it is opacity — cheaper
+   *      than Strawberry's and Matcha's transform drifts, not costlier.
+   *    · Vignette and grain are static gradients. No SVG, no filters.
+   *    · Bubble frame is a border. No pseudo-element needed at all.
+   *    · One MutationObserver plus one light guard. Idle cost ~0.
+   * ==================================================================== */
+
+  const THEME_CSS = `
+  /* ==== 1. Theme variables — HSL triplet format ======================
+   * NOTE THE INVERSION: on the two light themes --text-000 was the
+   * DARKEST value. Here it is the palest. claude.ai reaches for 000 when
+   * it wants maximum contrast against the page, and on a black page
+   * maximum contrast is bone, not ink. The background ramp keeps its
+   * usual direction — 000 is still the raised surface (dialogs, menus),
+   * which on a dark theme means slightly LIGHTER than the page.        */
+  :root,
+  html,
+  html[data-mode="light"],
+  html[data-mode="dark"],
+  html.dark {
+    /* background ramp: raised surfaces -> deep furniture */
+    --bg-000: 26 14% 12.5% !important;   /* dialogs, popovers    */
+    --bg-100: 24 16% 8.5%  !important;   /* page                 */
+    --bg-200: 26 14% 11.5% !important;   /* sidebar, panels      */
+    --bg-300: 26 13% 15.5% !important;   /* hover states         */
+    --bg-400: 28 12% 21.0% !important;
+    --bg-500: 28 11% 28.0% !important;
+
+    /* text ramp: brightest -> dimmest */
+    --text-000: 40 32% 92.0% !important;
+    --text-100: 40 28% 87.0% !important;  /* headings            */
+    --text-200: 38 24% 80.0% !important;  /* body parchment      */
+    --text-300: 36 18% 68.0% !important;
+    --text-400: 34 14% 54.0% !important;  /* muted               */
+    --text-500: 32 11% 44.0% !important;
+
+    /* borders: warm, low, never grey */
+    --border-100: 28 14% 20.0% !important;
+    --border-200: 28 15% 26.0% !important;
+    --border-300: 28 16% 32.0% !important;
+    --border-400: 28 17% 38.0% !important;
+
+    /* the single accent — oxblood */
+    --accent-main-000: 352 46% 32% !important;
+    --accent-main-100: 352 48% 38% !important;
+    --accent-main-200: 352 50% 45% !important;
+    --accent-secondary-000: 20 24% 32% !important;
+    --accent-secondary-100: 20 26% 38% !important;
+    --accent-secondary-200: 20 28% 45% !important;
+    --accent-pro-000: 352 40% 34% !important;
+    --accent-pro-100: 352 42% 40% !important;
+    --accent-pro-200: 352 44% 47% !important;
+
+    color-scheme: dark;
+
+    /* Iowan Old Style ships with iOS and is a book face, not a screen
+       face. Charter and Palatino are the sturdiest fallbacks. */
+    --ic-book: 'Iowan Old Style', 'Charter', 'Palatino', 'Book Antiqua', Georgia, 'Times New Roman', serif;
+  }
+
+  /* ==== 2. The room ==================================================
+   * Painted on <html> ONLY. Three notes on the colour:
+   *   · The black is WARM (a brown cast), never blue-black. Blue-black
+   *     reads as screen; brown-black reads as a room at night.
+   *   · The lamp sits above the content, off-centre, so the light has a
+   *     direction. A centred glow reads as a vignette inverted, which
+   *     reads as nothing.
+   *   · There is a second, much dimmer pool low on the page so the
+   *     bottom of a long conversation doesn't fall off a cliff.       */
+
+  html {
+    background:
+      radial-gradient(ellipse 96% 52% at 38% -12%, rgba(150, 104, 56, 0.30), transparent 64%),
+      radial-gradient(ellipse 70% 40% at 84% 18%,  rgba(122, 82, 44, 0.14), transparent 66%),
+      radial-gradient(ellipse 120% 60% at 50% 118%, rgba(78, 52, 32, 0.20), transparent 62%),
+      linear-gradient(178deg, #17120F 0%, #1A1512 46%, #14100D 100%) !important;
+    background-attachment: fixed !important;
+    background-color: #171310 !important;
+  }
+
+  body {
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+
+  /* ==== 2b. Kill blur globally ======================================= */
+  * {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  /* ==== 3. Lamp layer: vignette, grain, and one slow breath ==========
+   * There is no artwork in this theme on purpose. Where Strawberry has
+   * clouds and Matcha has sprigs, this has LIGHT — which is the correct
+   * decoration for a room, and the only one austere enough to belong.
+   *
+   *   ::before  vignette + paper grain. Both static. The grain is four
+   *             sub-pixel dots on a 90px tile at ~4% opacity; you will
+   *             never see it directly, but without it the black reads as
+   *             flat digital nothing rather than as paper in shadow.
+   *
+   *   ::after   the lamp's breath. ONE opacity animation, 16 seconds,
+   *             ranging 0.72 -> 1. Deliberately too slow and too narrow
+   *             to catch consciously. This is not a candle flicker:
+   *             flicker is exhausting to read against and expensive to
+   *             run. A room with a real flame in it is not strobing, it
+   *             is very slightly swelling.                             */
+
+  #ic-room {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  /* --- vignette + paper grain (static) --- */
+  #ic-room::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 17% 23%, rgba(232, 216, 186, 0.055) 0 0.7px, transparent 1.4px),
+      radial-gradient(circle at 62% 11%, rgba(232, 216, 186, 0.045) 0 0.6px, transparent 1.2px),
+      radial-gradient(circle at 39% 68%, rgba(232, 216, 186, 0.050) 0 0.7px, transparent 1.3px),
+      radial-gradient(circle at 81% 84%, rgba(232, 216, 186, 0.040) 0 0.6px, transparent 1.2px),
+      radial-gradient(ellipse 76% 60% at 50% 44%, transparent 38%, rgba(0, 0, 0, 0.46) 100%);
+    background-size: 90px 90px, 90px 90px, 90px 90px, 90px 90px, 100% 100%;
+  }
+
+  /* --- the lamp's breath (the theme's only animation) --- */
+  #ic-room::after {
+    content: '';
+    position: absolute;
+    top: -18%;
+    left: 6%;
+    width: 74%;
+    height: 62%;
+    background: radial-gradient(ellipse at 50% 50%,
+      rgba(186, 132, 68, 0.20) 0%,
+      rgba(158, 110, 58, 0.10) 42%,
+      transparent 72%);
+    animation: icBreath 16s ease-in-out infinite;
+    will-change: opacity;
+  }
+
+  @keyframes icBreath {
+    0%, 100% { opacity: 0.72; }
+    50%      { opacity: 1; }
+  }
+
+  /* ==== 4. Fake glass: panels, menus, dialogs ========================
+   * On a dark theme "glass" is not translucency, it is a LIFT: the
+   * surface sits a shade above the page with a hairline catching the
+   * lamp along its top edge. Same trick as the light themes, inverted —
+   * the inner highlight is now a whisper instead of a white line.     */
+
+  /* NOTE ON THE DIVIDER: this is an INSET shadow, never a border-right.
+     The drawer slides off-canvas by exactly its own width, so a real
+     border sits at x=0 with the drawer closed and shows as a stray
+     hairline down the edge of the screen. An inset shadow is drawn
+     inside the box and travels off-screen with it. Identical divider
+     when open, nothing peeking when closed. Same trick belongs in every
+     theme in this set. */
+  nav,
+  aside,
+  [class*="sidebar"] {
+    background: linear-gradient(180deg,
+      rgba(36, 29, 24, 0.96) 0%,
+      rgba(26, 21, 17, 0.97) 100%) !important;
+    border-right: none !important;
+    box-shadow:
+      inset -1px 0 0 rgba(214, 170, 112, 0.20),
+      inset 0 1px 0 rgba(226, 196, 150, 0.07),
+      0 8px 34px rgba(0, 0, 0, 0.55) !important;
+  }
+
+  [role="dialog"],
+  [role="menu"],
+  [role="listbox"],
+  [role="tooltip"],
+  [data-radix-popper-content-wrapper] > div,
+  [data-radix-menu-content] {
+    background: linear-gradient(160deg,
+      rgba(40, 32, 26, 0.97) 0%,
+      rgba(28, 22, 18, 0.98) 100%) !important;
+    border: 1px solid rgba(128, 102, 78, 0.32) !important;
+    border-radius: 4px !important;
+    color: #E6DCC8 !important;
+    box-shadow:
+      inset 0 1px 0 rgba(226, 196, 150, 0.08),
+      0 14px 44px rgba(0, 0, 0, 0.62) !important;
+  }
+
+  .bg-bg-000 { background-color: rgba(40, 32, 26, 0.78) !important; }
+  .bg-bg-100 { background-color: rgba(26, 21, 17, 0.60) !important; }
+  .bg-bg-200 { background-color: rgba(33, 27, 23, 0.72) !important; }
+  .bg-bg-300 { background-color: rgba(45, 37, 30, 0.80) !important; }
+
+  /* ==== 5. Top bar — let the room through ============================ */
+  header {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border-bottom: none !important;
+  }
+  header :is(div, span, a, h1, h2, button) {
+    color: #DCD0B8 !important;
+  }
+  header :is(h1, h2, [class*="truncate"]) {
+    font-family: var(--ic-book) !important;
+  }
+  header :is(button, a):not(:has([class*="truncate"])) {
+    background: transparent !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* the chat-title pill. Everywhere else in this set the pill is a
+     gradient; here it is an EMPTY box with a hairline, matching the
+     bubble language. Nothing in this theme is filled unless it does
+     something when you press it. */
+  header button:has([class*="truncate"]),
+  header [role="button"]:has([class*="truncate"]) {
+    background: rgba(255, 250, 240, 0.03) !important;
+    border: 1px solid rgba(140, 112, 86, 0.42) !important;
+    border-radius: 3px !important;
+    box-shadow: none !important;
+  }
+  header button:has([class*="truncate"]) > *,
+  header [role="button"]:has([class*="truncate"]) > * {
+    background: transparent !important;
+    background-image: none !important;
+  }
+  header button:has([class*="truncate"]),
+  header button:has([class*="truncate"]) :is(span, div, h1, h2),
+  header button:has([class*="truncate"]) svg {
+    color: #E6DCC8 !important;
+  }
+
+  /* ==== 5b. Share ====================================================
+     Share is NOT in the header — it rides in the chat body under
+     data-testid="wiggle-controls-actions-share". The white pill is drawn
+     by the button's own pseudo-element, so mute that and let the button
+     paint. The ring is an inset box-shadow, not a border, because the
+     button ships border-0 and a real border nudges the bar 2px. */
+  [data-testid="wiggle-controls-actions-share"] {
+    background: rgba(255, 250, 240, 0.04) !important;
+    border-radius: 3px !important;
+    box-shadow:
+      inset 0 0 0 1px rgba(140, 112, 86, 0.46),
+      inset 0 1px 0 rgba(226, 196, 150, 0.06) !important;
+    color: #E6DCC8 !important;
+  }
+  [data-testid="wiggle-controls-actions-share"]::before,
+  [data-testid="wiggle-controls-actions-share"]::after {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  /* muting the pseudo-element takes the press state with it — give it
+     back, and let this be one of the few places the oxblood shows */
+  [data-testid="wiggle-controls-actions-share"]:hover,
+  [data-testid="wiggle-controls-actions-share"]:active {
+    background: rgba(122, 34, 48, 0.24) !important;
+    box-shadow:
+      inset 0 0 0 1px rgba(155, 48, 64, 0.62),
+      inset 0 1px 0 rgba(226, 196, 150, 0.08) !important;
+  }
+  [data-testid="wiggle-controls-actions-share"] :is(span, div, p, svg) {
+    background: transparent !important;
+    background-image: none !important;
+    color: #E6DCC8 !important;
+  }
+
+  /* ==== 6. Composer — a page under the lamp ==========================
+   * Strawberry glows pink and Matcha glows green. This one does NOT
+   * glow. A halo around the input would look like an alert in a room
+   * this dark, and it would be the single least austere object on the
+   * screen. Instead the composer is simply LIT: a shade above the page,
+   * one hairline, and a warm cast on its upper edge as though the lamp
+   * were catching the top of the paper. The only bloom is the caret.  */
+
+  fieldset {
+    background: linear-gradient(168deg,
+      rgba(44, 35, 28, 0.94) 0%,
+      rgba(32, 26, 21, 0.96) 100%) !important;
+    border: 1px solid rgba(138, 110, 84, 0.40) !important;
+    border-radius: 5px !important;
+    box-shadow:
+      inset 0 1px 0 rgba(232, 200, 152, 0.10),
+      0 -1px 22px rgba(150, 104, 56, 0.10),
+      0 10px 36px rgba(0, 0, 0, 0.50) !important;
+  }
+
+  fieldset div,
+  fieldset div[class],
+  fieldset div[class] div[class] {
+    background-color: transparent !important;
+    background-image: none !important;
+  }
+
+  form:has(fieldset) {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* ==== 6c. The dock ================================================= *
+   * The strip the composer sits in fades from clear at the top to solid
+   * page-black at the bottom, so scrolling text dissolves into the dark
+   * instead of colliding with the composer. .ic-dock is applied by
+   * docker() below — this container has no stable class of its own.    */
+
+  div.ic-dock {
+    background: linear-gradient(to bottom,
+      rgba(20, 16, 13, 0)    0%,
+      rgba(20, 16, 13, 0.74) 14%,
+      rgba(20, 16, 13, 0.94) 34%,
+      #14100D                62%) !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* the disclaimer. On the light themes this got a white halo; here a
+     halo would be a glowing smudge, so it gets a dark one instead —
+     same job, opposite colour: it separates the text from whatever is
+     dissolving behind it. */
+  .ic-disclaimer,
+  .ic-disclaimer * {
+    color: #8A7C69 !important;
+    text-shadow:
+      0 0 6px rgba(20, 16, 13, 0.98),
+      0 0 14px rgba(20, 16, 13, 0.90) !important;
+  }
+
+  /* composer chrome: model name, icons, the + button */
+  fieldset, fieldset * {
+    color: #BFB09A !important;
+  }
+
+  /* what you type — same book face as everything else */
+  div[contenteditable="true"],
+  div[contenteditable="true"] p,
+  textarea {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #EFE6D3 !important;
+    caret-color: #9B3040 !important;
+    font-family: var(--ic-book) !important;
+    font-size: 1.02em !important;
+  }
+  ::placeholder,
+  div[contenteditable="true"] p[data-placeholder]::before,
+  [contenteditable] [data-placeholder]::before {
+    color: #7E7263 !important;
+    opacity: 1 !important;
+    font-family: var(--ic-book) !important;
+    font-style: italic !important;
+  }
+
+  /* ==== 6b. Send button — the one filled thing ======================= *
+   * Oxblood, sharp, small. This is the only saturated object on the
+   * screen, which is exactly why it works: in a room this dim, one red
+   * mark carries more weight than any amount of glow.                  */
+  button[aria-label*="send" i],
+  fieldset button[type="submit"],
+  .bg-accent-main-000,
+  .bg-accent-main-100,
+  .bg-accent-main-200 {
+    background: linear-gradient(158deg, #7A2230 0%, #6B1D2A 100%) !important;
+    border: 1px solid rgba(196, 112, 122, 0.34) !important;
+    border-radius: 3px !important;
+    overflow: hidden !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 214, 214, 0.14),
+      0 2px 10px rgba(0, 0, 0, 0.46) !important;
+  }
+  button[aria-label*="send" i] *,
+  fieldset button[type="submit"] * {
+    background: transparent !important;
+    background-image: none !important;
+    color: #F6EADA !important;
+  }
+
+  /* ==== 7. YOUR bubble — a mark in the margin ========================
+   *
+   *  Sharp corners. No fill worth the name. A bone hairline all the way
+   *  round and a single oxblood rule down the left edge, like a note
+   *  ruled into a manuscript margin.
+   *
+   *  This is a real inversion of the rest of the set. Strawberry and
+   *  Matcha distinguish your messages by FILLING them — a pink cloud, a
+   *  green patch. Here your messages are distinguished by their FRAME,
+   *  and the page shows through. It is the quietest possible way to mark
+   *  a bubble, and on a dark background it is entirely legible because
+   *  your text is the same parchment as Claude's.
+   *
+   *  The 2% white wash is not a fill; it is there so the box lifts a
+   *  hair off the page and doesn't look like an accidental outline.
+   */
+
+  /* clear the ancestor wrappers (the ghost rectangle) — do NOT touch
+     overflow here */
+  div:has(> [data-testid="user-message"]),
+  div:has(> div > [data-testid="user-message"]),
+  div:has(> div > div > [data-testid="user-message"]),
+  div:has(> div > div > div > [data-testid="user-message"]) {
+    background: transparent !important;
+    background-color: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+  div:has([data-testid="user-message"])::before,
+  div:has([data-testid="user-message"])::after {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  [data-testid="user-message"] {
+    position: relative !important;
+    background: rgba(255, 248, 236, 0.022) !important;
+    color: #E6DCC8 !important;
+    /* the hairline is warmed very slightly — a bone line lit by a flame
+       is not the same colour as a bone line in the dark */
+    border: 1px solid rgba(226, 198, 154, 0.30) !important;
+    border-left: 2px solid #7A2230 !important;
+    border-radius: 0 !important;
+    padding: 0.9rem 1.05rem !important;
+    /* --- the bloom -------------------------------------------------
+       Four shadows doing four jobs. Read outward:
+         1. inset  — a faint warmth INSIDE the frame. This is what sells
+                     "backlit" rather than "outlined in neon": some of
+                     the light appears to be coming through the page.
+         2. 1px    — the frame's own halo, tight enough to read as the
+                     line itself glowing rather than as a second border.
+         3. 14px   — the near bloom.
+         4. 34px   — the far falloff, very low, so the glow has somewhere
+                     to end. Without it the light stops abruptly and
+                     reads as a rectangle of fog.
+       The colour is the LAMP's amber, not the oxblood. The bubble is
+       being lit by the same flame as the room, which is the whole
+       conceit; a red glow would look like an error state.
+       DELIBERATELY NOT ANIMATED: syncing this to the lamp's breath was
+       tempting and would be lovely, but box-shadow animates on the paint
+       thread rather than the compositor, so a glow that breathes on
+       every bubble in a long chat is exactly the kind of thing that
+       quietly eats a phone battery. The room breathes; the paper
+       doesn't.                                                       */
+    box-shadow:
+      inset 0 0 24px rgba(206, 158, 96, 0.055),
+      0 0 0 1px rgba(214, 170, 112, 0.07),
+      0 0 14px rgba(203, 152, 88, 0.13),
+      0 0 34px rgba(178, 130, 72, 0.07) !important;
+  }
+
+  [data-testid="user-message"] :is(p, li, span, div) {
+    color: #E6DCC8 !important;
+  }
+
+  /* the book face, and a little extra leading — serifs at phone size
+     want more air than a sans does. Inline code stays monospace. */
+  [data-testid="user-message"],
+  [data-testid="user-message"] :is(p, li, span, div, strong, b, em, i, del, blockquote) {
+    font-family: var(--ic-book) !important;
+  }
+  [data-testid="user-message"] :is(p, li, blockquote) {
+    font-size: 1.02em !important;
+    line-height: 1.68 !important;
+  }
+  [data-testid="user-message"] :is(code, pre, code *, pre *) {
+    font-family: ui-monospace, Menlo, Consolas, monospace !important;
+    font-size: 0.86em !important;
+  }
+
+  /* ==== 7b. The collapse fade ======================================== *
+   * When a long message collapses behind "Show more", claude.ai lays a
+   * gradient over the last lines, fading toward its own neutral — which
+   * here reads as a grey slab inside an unfilled box. Because this
+   * bubble is effectively transparent, the fade must run to the PAGE
+   * colour rather than to a bubble colour. That's the one place this
+   * section differs from the light themes.
+   *
+   * Two ways in: the Tailwind-ish hooks, plus a .ic-fade tag applied by
+   * the fade-hunter in the JS.                                         */
+
+  [data-testid="user-message"] .ic-fade,
+  [data-testid="user-message"] [class*="to-bg-"],
+  [data-testid="user-message"] [class*="from-bg-"],
+  [data-testid="user-message"] [class*="bg-gradient"] {
+    background-color: transparent !important;
+    background-image: linear-gradient(to bottom,
+      rgba(23, 19, 16, 0)    0%,
+      rgba(23, 19, 16, 0.72) 42%,
+      rgba(23, 19, 16, 0.96) 78%,
+      #171310                100%) !important;
+  }
+
+  /* "Show more" / "Show less" — oxblood, because it's a control */
+  [data-testid="user-message"] .ic-fade + * {
+    color: #C56D76 !important;
+  }
+  div:has(> [data-testid="user-message"]) button {
+    color: #C56D76 !important;
+  }
+
+  /* ==== 8. Claude's messages ========================================= */
+
+  .font-claude-message,
+  .font-claude-response,
+  [data-testid="assistant-message"] {
+    background: transparent !important;
+  }
+
+  body :is(p, li, blockquote, td, th, figcaption, summary):not(pre *):not(code):not(code *) {
+    color: #E0D5C0 !important;
+  }
+  body :is(h1, h2, h3, h4, h5, h6, strong, b):not(pre *):not(code *) {
+    color: #F3EBDA !important;
+  }
+
+  /* the bubble keeps its own colours — the two rules above are
+     document-wide and would otherwise repaint inside the frame */
+  [data-testid="user-message"] :is(p, li, blockquote, td, th, summary),
+  [data-testid="user-message"] :is(h1, h2, h3, h4, h5, h6, strong, b) {
+    color: #E6DCC8 !important;
+  }
+
+  /* Italic action text. On the light themes this got a coloured halo;
+     here it gets NO glow at all — a glow would be the least austere
+     thing on the page. It gets the accent instead, which is stronger
+     for being the only place in a long reply the red appears. */
+  .font-claude-message :is(em, i),
+  .font-claude-response :is(em, i),
+  [data-testid="assistant-message"] :is(em, i) {
+    color: #C56D76 !important;
+    font-style: italic !important;
+  }
+
+  /* ==== 9. Quiet text stays quiet (thinking block, timestamps) ======= */
+  body :is(p, li, span, div, summary):is([class*="text-text-3"], [class*="text-text-4"], [class*="text-text-5"]):not(pre *):not(code *),
+  body :is([class*="text-text-3"], [class*="text-text-4"], [class*="text-text-5"]) :is(p, li, span, div):not(pre *):not(code *) {
+    color: #8F8371 !important;
+  }
+  div[class*="grid-template-rows"] :is(p, li, span, div):not(pre *):not(code *),
+  div[class*="grid-template-rows"] svg {
+    color: #8F8371 !important;
+  }
+  div[class*="grid-template-rows"] * {
+    border-color: #33291F !important;
+  }
+
+  /* ==== 9b. The sidebar ==============================================
+   * Two changes here, and the second one is a design argument.
+   *
+   * ICONS: claude.ai draws these with stroke="currentColor", so they
+   * inherit whatever colour the link sets. Section 10 only reaches
+   * BUTTONS, and sidebar rows are anchors — which is why they stayed
+   * stark white while everything around them warmed up. Fixed by
+   * colouring the nav itself.
+   *
+   * TEXT: this was oxblood, because Section 11 paints every <a> in the
+   * accent and sidebar rows are links. It looked striking and it was
+   * wrong — not too pale, but too PLENTIFUL. The whole premise of this
+   * theme is that there is one red thing and it is rare. An entire
+   * navigation list in oxblood spends the accent on furniture, and once
+   * the red is ordinary it stops meaning anything, which is exactly the
+   * "something is missing" feeling: the colour was there but it wasn't
+   * doing a job. So the rows go parchment, and the red is saved for the
+   * row you're actually ON. Now it says "you are here" instead of
+   * saying nothing loudly.                                            */
+
+  nav :is(a, a span, a div, button span),
+  aside :is(a, a span, a div, button span),
+  [class*="sidebar"] :is(a, a span, a div, button span) {
+    color: #E0D5C0 !important;
+  }
+  nav svg,
+  aside svg,
+  [class*="sidebar"] svg {
+    color: #E0D5C0 !important;
+  }
+
+  /* the one red thing in the sidebar: wherever you currently are */
+  nav :is(a[aria-current], a[data-active="true"], [aria-selected="true"]),
+  nav :is(a[aria-current], a[data-active="true"], [aria-selected="true"]) :is(span, div, svg),
+  aside :is(a[aria-current], a[data-active="true"], [aria-selected="true"]),
+  aside :is(a[aria-current], a[data-active="true"], [aria-selected="true"]) :is(span, div, svg),
+  nav a:hover, nav a:hover :is(span, div, svg),
+  aside a:hover, aside a:hover :is(span, div, svg) {
+    color: #C56D76 !important;
+  }
+
+  /* ==== 10. Buttons & icons ========================================== */
+  button:not([aria-label*="Send" i]):not([type="submit"]),
+  button:not([aria-label*="Send" i]):not([type="submit"]) :is(span, div, p),
+  button:not([aria-label*="Send" i]):not([type="submit"]) svg {
+    color: #BFB09A !important;
+  }
+
+  /* ==== 11. Ambience ================================================= */
+  ::selection {
+    background: rgba(122, 34, 48, 0.52);
+    color: #F6EADA;
+  }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(138, 110, 84, 0.38);
+    border-radius: 0;
+  }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  pre, code {
+    background-color: rgba(255, 246, 232, 0.045) !important;
+    border-radius: 3px !important;
+  }
+  pre {
+    border: 1px solid rgba(120, 96, 74, 0.24) !important;
+  }
+
+  hr {
+    border-color: rgba(150, 120, 92, 0.30) !important;
+  }
+
+  a:not(button) {
+    color: #C0666F !important;
+    text-decoration-color: rgba(192, 102, 111, 0.45) !important;
+  }
+
+  /* ==== 12. Markdown bloom clothes ===================================
+   * The JS below repaints YOUR sent bubbles (display-only) so **bold**,
+   * *italics*, \`code\`, # headers, ~~strikes~~ and --- dividers render.
+   * On the light themes these had to be dark; here they're light again,
+   * and the emphasis colour is the accent. Headers stay in the book
+   * face — a serif heading inside a serif bubble is the whole point.  */
+  [data-testid="user-message"] strong { font-weight: 700 !important; color: #FBF4E6 !important; }
+  [data-testid="user-message"] em     { font-style: italic !important; color: #C56D76 !important; }
+  [data-testid="user-message"] del    { opacity: 0.55; }
+  [data-testid="user-message"] code.ic-code {
+    font-family: ui-monospace, Menlo, Consolas, monospace !important;
+    font-size: 0.88em !important;
+    background-color: rgba(255, 246, 232, 0.07) !important;
+    color: #E9D9BE !important;
+    border: 1px solid rgba(150, 120, 92, 0.34) !important;
+    border-radius: 2px !important;
+    padding: 0.05rem 0.35rem !important;
+  }
+  [data-testid="user-message"] p.ic-h1 { font-size: 1.34em !important; font-weight: 700 !important; color: #FBF4E6 !important; letter-spacing: 0.01em !important; }
+  [data-testid="user-message"] p.ic-h2 { font-size: 1.18em !important; font-weight: 700 !important; color: #FBF4E6 !important; }
+  [data-testid="user-message"] p.ic-h3 { font-size: 1.05em !important; font-weight: 700 !important; color: #F3EBDA !important; }
+  [data-testid="user-message"] p.ic-hr {
+    border-top: 1px solid rgba(150, 120, 92, 0.42) !important;
+    height: 0 !important;
+    margin: 0.7rem 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* ==== 13. Reduced motion =========================================== */
+  @media (prefers-reduced-motion: reduce) {
+    #ic-room::after { animation: none; opacity: 0.88; }
+  }
+  `;
+
+  /* ------------------------------------------------------------------ *
+   *  Injection
+   * ------------------------------------------------------------------ */
+
+  const STYLE_ID = 'ink-candlelight-style';
+  const ROOM_ID  = 'ic-room';
+
+  function injectStyle() {
+    if (document.getElementById(STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = THEME_CSS;
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  THE DOCKER
+   *
+   *  The "Claude is AI and can make mistakes" line has no stable class,
+   *  id or aria-label, so we find it by its wording — once — and tag it.
+   *  From there we walk up a few levels to the container that also holds
+   *  the composer, and tag that as the dock so CSS can paint its fade.
+   *
+   *  Cost: runs only while .ic-dock is missing. Once tagged, every later
+   *  call exits on the first line. Effectively free at idle.
+   * ------------------------------------------------------------------ */
+
+  function docker() {
+    if (document.querySelector('.ic-dock')) return;
+    try {
+      let best = null;
+      for (const el of document.querySelectorAll('div, p, span')) {
+        const t = el.textContent;
+        if (!t || t.length > 140) continue;
+        if (!/can make mistakes/i.test(t)) continue;
+        if (!best || t.length < best.textContent.length) best = el;
+      }
+      if (!best) return;
+      best.classList.add('ic-disclaimer');
+
+      /* walk up for the container that also holds the composer, but
+         refuse anything tall enough to be the whole page */
+      let p = best.parentElement;
+      for (let i = 0; i < 5 && p; i++) {
+        if (p.querySelector('fieldset')) {
+          if (p.getBoundingClientRect().height < window.innerHeight * 0.5) {
+            p.classList.add('ic-dock');
+          }
+          return;
+        }
+        p = p.parentElement;
+      }
+    } catch (e) { /* never break the page over a disclaimer */ }
+  }
+
+  function buildRoom() {
+    if (!document.body || document.getElementById(ROOM_ID)) return;
+    const room = document.createElement('div');
+    room.id = ROOM_ID;
+    room.setAttribute('aria-hidden', 'true');
+    document.body.prepend(room);
+  }
+
+  injectStyle();
+
+  /* ------------------------------------------------------------------ *
+   *  MARKDOWN BLOOM  (carried over, classes renamed mm- -> ic-)
+   *
+   *  Display-only: we repaint the pixels of your sent bubbles, never the
+   *  underlying message. Edit / copy / regenerate all read the app's own
+   *  state, so the raw text keeps its asterisks. The composer is left
+   *  alone on purpose — rewriting a live input risks cursor jumps.
+   * ------------------------------------------------------------------ */
+
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  function inlineMd(raw) {
+    let s = esc(raw);
+    s = s.replace(/`([^`]+)`/g, '<code class="ic-code">$1</code>');
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/\*(\S(?:[^*\n]*\S)?)\*/g, '<em>$1</em>');
+    s = s.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+    return s;
+  }
+
+  const MD_HINT = /(\*\*|\*[^*]|`|~~|^#{1,3}\s|^\s*---\s*$)/;
+
+  function processParagraph(p) {
+    const raw = p.textContent;
+    if (!MD_HINT.test(raw)) return;
+
+    const trimmed = raw.trim();
+    if (/^---+$/.test(trimmed)) {
+      p.textContent = '';
+      p.classList.add('ic-hr');
+      return;
+    }
+    const h = trimmed.match(/^(#{1,3})\s+(.*)$/);
+    if (h) {
+      p.innerHTML = inlineMd(h[2]);
+      p.classList.add('ic-h' + h[1].length);
+      return;
+    }
+    p.innerHTML = inlineMd(raw);
+  }
+
+  function processBubble(bubble) {
+    if (bubble.dataset.icMd !== '1') {
+      bubble.dataset.icMd = '1';
+      bubble.querySelectorAll('p').forEach(processParagraph);
+    }
+    tagFades(bubble);
+  }
+
+  /* ---- fade-hunter -------------------------------------------------- *
+   * The "Show more" fade overlay has no dependable class name, so we
+   * find it by what it actually paints: any div inside a bubble whose
+   * computed background-image is a gradient gets tagged .ic-fade, and
+   * the CSS repaints it in page black. Each div is inspected exactly
+   * once (data-ic-fade), so a bubble costs a handful of style reads on
+   * first sight and nothing ever after.                                */
+
+  function tagFades(bubble) {
+    try {
+      for (const el of bubble.querySelectorAll('div')) {
+        if (el.dataset.icFade) continue;
+        el.dataset.icFade = '1';
+        const bg = getComputedStyle(el).backgroundImage || '';
+        if (bg.indexOf('gradient') !== -1) el.classList.add('ic-fade');
+      }
+    } catch (e) { /* never break the page over a gradient */ }
+  }
+
+  function scan(root) {
+    if (!root || !root.querySelectorAll) return;
+    if (root.matches && root.matches('[data-testid="user-message"]')) processBubble(root);
+    root.querySelectorAll('[data-testid="user-message"]').forEach(processBubble);
+    /* the overlay is often added later than the bubble it lives in */
+    if (root.closest) {
+      const host = root.closest('[data-testid="user-message"]');
+      if (host) tagFades(host);
+    }
+  }
+
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      for (const node of m.addedNodes) {
+        if (node.nodeType === 1) scan(node);
+      }
+    }
+    /* cheap self-heal: if hydration nuked our layers, put them back */
+    if (!document.getElementById(STYLE_ID)) injectStyle();
+    if (document.body && !document.getElementById(ROOM_ID)) buildRoom();
+    docker();
+  });
+
+  function boot() {
+    injectStyle();
+    buildRoom();
+    docker();
+    scan(document.documentElement);
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+
+    /* burst pass: claude.ai builds its chrome after load, so look for the
+       disclaimer a few times early rather than waiting on a mutation */
+    let bursts = 0;
+    const burst = setInterval(() => {
+      docker();
+      if (++bursts >= 20 || document.querySelector('.ic-dock')) clearInterval(burst);
+    }, 300);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  } else {
+    boot();
+  }
+})();
