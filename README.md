@@ -53,6 +53,16 @@ A warm near-black dark theme — an old book in a room with one lamp on. Brown-b
 
 **Install →** [Stylus version](https://raw.githubusercontent.com/anarchicgroove/claude-themes/main/ink-and-candlelight/ink-and-candlelight.user.css) · [Userscripts version](https://github.com/anarchicgroove/claude-themes/blob/main/ink-and-candlelight/ink-and-candlelight.user.js)
 
+### 🖥️ Phosphor
+
+A retro terminal dark theme — an old CRT monitor that somehow got the internet. Black screen, faint tiled binary behind everything, scanlines and a soft vignette over the top, and phosphor green from corner to corner. There are no message bubbles at all, and that's the design: what you send appears as a terminal prompt with a `>` in front of it, and Claude's replies arrive as raw output running down the screen, ending in a fat blinking block cursor. The glow is kept on the composer where it belongs, so long messages stay readable instead of smearing.
+
+<img src="phosphor/preview-7.jpg" alt="Phosphor" width="300">
+
+*This is a **dark** theme — set claude.ai to dark mode before you install it.*
+
+**Install →** [Stylus version](https://raw.githubusercontent.com/anarchicgroove/claude-themes/main/phosphor/phosphor.user.css) · [Userscripts version](https://github.com/anarchicgroove/claude-themes/blob/main/phosphor/phosphor.user.js)
+
 ---
 
 ## How to install
@@ -117,7 +127,7 @@ To turn it off later, open the Userscripts app and toggle the theme off.
 
 ## Notes
 
-- **Turn on one theme at a time.** They all target claude.ai, so two enabled at once will stack rather than replace — you'll get bits of both, and it looks like a bug when it isn't one.
+- **Turn on one theme at a time.** All of these target claude.ai, and they layer their backgrounds onto different parts of the page — so two enabled at once won't replace each other, they'll stack, and you'll get one theme's clouds sitting on another theme's background. If something looks scrambled, check that the others are switched off.
 - These themes are designed around the **mobile** claude.ai layout, so they look their best on a phone. They work on desktop too, just with more empty space at the edges.
 - Claude's own interface changes from time to time. If a theme suddenly looks half-broken, that's usually why — open an issue and I'll take a look.
 
