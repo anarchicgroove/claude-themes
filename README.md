@@ -23,8 +23,6 @@ There are two versions of every theme. Pick based on **which extension you're us
 
 Both give you the same look. The Safari version just does a little bit more, because Userscripts can run JavaScript and Stylus can't.
 
-*One exception right now: **Ink & Candlelight** is Userscripts-only while its Stylus version is still being tested. It'll be up shortly.*
-
 ---
 
 ## Themes
@@ -53,7 +51,7 @@ A warm near-black dark theme — an old book in a room with one lamp on. Brown-b
 
 *This is a **dark** theme — set claude.ai to dark mode before you install it.*
 
-**Install →** [Userscripts version](https://github.com/anarchicgroove/claude-themes/blob/main/ink-and-candlelight/ink-and-candlelight.user.js) *(Stylus version coming soon)*
+**Install →** [Stylus version](https://raw.githubusercontent.com/anarchicgroove/claude-themes/main/ink-and-candlelight/ink-and-candlelight.user.css) · [Userscripts version](https://github.com/anarchicgroove/claude-themes/blob/main/ink-and-candlelight/ink-and-candlelight.user.js)
 
 ---
 
@@ -119,6 +117,7 @@ To turn it off later, open the Userscripts app and toggle the theme off.
 
 ## Notes
 
+- **Turn on one theme at a time.** They all target claude.ai, so two enabled at once will stack rather than replace — you'll get bits of both, and it looks like a bug when it isn't one.
 - These themes are designed around the **mobile** claude.ai layout, so they look their best on a phone. They work on desktop too, just with more empty space at the edges.
 - Claude's own interface changes from time to time. If a theme suddenly looks half-broken, that's usually why — open an issue and I'll take a look.
 
