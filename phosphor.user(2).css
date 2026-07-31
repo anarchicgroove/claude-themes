@@ -1,0 +1,1199 @@
+/* ==UserStyle==
+@name           Phosphor — Claude.ai
+@namespace      neb.phosphor
+@version        1.4.1
+@description    A retro CRT terminal theme for claude.ai — black glass, faint tiled binary, 3px scanlines, monospace throughout, and no message bubbles at all: your messages are prompts, Claude's are output. Phosphor green bloom on the composer, the caret and the prompt only. Stylus build (CSS only): desktop Firefox/Chrome and Firefox Android.
+@author         neb (creative director) & Claude (implementation)
+@license        MIT
+@preprocessor   default
+==/UserStyle== */
+
+/* ====================================================================== *
+ *  PHOSPHOR — STYLUS BUILD  v1.4.1
+ *
+ *  This is the SAME theme as phosphor.user.js, derived from it rather
+ *  than rewritten, so the two can't drift apart.
+ *
+ *  CHANGELOG v1.4.1 — three things desktop found that a phone never
+ *  would, two of them straight consequences of a WIDE viewport:
+ *    · THE BINARY TILED VISIBLY. One 300px tile across 1900px is six
+ *      identical columns, and the eye locks onto that grid instantly —
+ *      it stops reading as data and starts reading as wallpaper. A
+ *      second layer at 380px fixes it (Section 3).
+ *    · THE STARBURST WENT BACK TO ORANGE. My reading of paintIcon() was
+ *      wrong. Its header comment is stale from v1.2.0 and claims it
+ *      never touches a literal colour, but the code that comment
+ *      describes was replaced. The real test is countPaints() > 1 — how
+ *      many DISTINCT paints an icon uses. Gmail and Drive are
+ *      multicolour and survive; the starburst is one flat orange, so it
+ *      counted as a monochrome UI glyph and got phosphored like any
+ *      other. And iconize() ran on EVERY svg on the page, where Section
+ *      14 only ever reached chrome. Section 14b answers both.
+ *    · NO BLOCK CURSOR. Section 8b required the paragraph to be a direct
+ *      child of the message WRAPPER, when it is a child of the MESSAGE.
+ *      Off by one level. Fixed and widened.
+ *
+ *  WHICH FILE DO I NEED?
+ *    · Stylus (desktop Firefox/Chrome, Firefox Android) -> this file
+ *    · Userscripts (iOS/macOS Safari)                   -> the .user.js
+ *
+ *  The split exists because the two extensions scope styles differently:
+ *  Stylus wants @-moz-document, Userscripts wants @match. Everything
+ *  below is wrapped in the former, which Safari ignores entirely.
+ *
+ *  THE IDEA
+ *  An old CRT terminal that happens to be running something new. Retro
+ *  in the TEXTURE, futuristic in the LIGHT.
+ *
+ *  WHAT CHANGED FROM THE USERSCRIPT
+ *  Nothing visual, with the named exceptions below. The two greens, the
+ *  absent bubbles, the ">" prompt, the binary, the scanlines, the pixel
+ *  send arrow, the inverse-video selection and the battery budget are
+ *  all the same rules.
+ *
+ *  THE ONE THAT MATTERED — THE ICON FONT (see Section 5)
+ *  v1.4.0's whole fix was tagGlyphs(): find the spans holding icon-font
+ *  glyphs, tag them, and exempt them from every chrome font rule with
+ *  :not([data-ph-glyph]). Without JS there is no tag, so every one of
+ *  those guards is inert and the v1.0.0 bug — icons not dimmed but
+ *  ERASED — comes straight back.
+ *
+ *  So the font rules changed shape instead. The mono face is now set on
+ *  the CONTAINER only (header, fieldset, nav, button) and reaches the
+ *  text by inheritance. Inheritance is the weakest thing in the cascade:
+ *  an icon span's own font-family declaration beats a value inherited
+ *  into it, so the icon font is never replaced and the glyph never
+ *  vanishes. !important doesn't change that — importance isn't inherited.
+ *  Same outcome, no JS, and it needs no list of which icons exist.
+ *
+ *  Four more things were REHOUSED because they leaned on JavaScript:
+ *    · the tube    — was a JS-built <div id="ph-crt"> hosting two
+ *                    pseudo-elements; now html::before/::after
+ *    · the dock    — was a JS text-hunt for the disclaimer; now a
+ *                    pseudo-element hung off the composer's own form,
+ *                    which is the fix Ink's Stylus build landed on
+ *    · the icons   — paintIcon()'s per-shape test was an ATTRIBUTE test
+ *                    all along, so the selector engine can make it
+ *    · the fade    — the JS .ph-fade tag is gone; the Tailwind-ish
+ *                    hooks beside it were always the primary anyway
+ *
+ *  Three things were DROPPED because CSS genuinely cannot do them:
+ *    · markdown rendering inside YOUR sent messages (Section 12)
+ *    · the disclaimer's dim green and void halo, which was found by its
+ *      WORDING, and CSS has no text-matching selector
+ *    · verify()'s computed-value net — the attribute half is re-made in
+ *      Section 14, the "read it back after painting" half cannot be
+ *
+ *  And one thing is REBUILT ON AN ASSUMPTION I couldn't test from here:
+ *    · the blinking block cursor. See the long note in Section 8b for
+ *      what it does if the assumption is wrong. Cosmetic either way.
+ *
+ *  SEARCH "CSS-ONLY" to find every place this file diverges from 1.4.0.
+ *
+ *  ONE THEME AT A TIME. Every style in this set targets claude.ai, and
+ *  they use different host elements for their background layers, so two
+ *  enabled at once will STACK rather than replace — you get Strawberry's
+ *  clouds drifting over the tube and it looks like a bug when it isn't.
+ *
+ *  PALETTE
+ *    void        #040604    page mix   #060A07    panels  #080D09
+ *    phosphor    #00FF41    lit        #4DFF80
+ *    mint body   #86E9A2    headings   #CFFFDD    muted   #46A05F
+ *    scanline    black @ 18%, 3px pitch
+ *
+ *  BATTERY BUDGET
+ *    · ONE animation in the entire theme: the block cursor's blink,
+ *      opacity only, steps(1) so it isn't even interpolating.
+ *    · The binary is a STATIC tiled SVG. Not falling Matrix rain.
+ *    · Scanlines and vignette are static gradients.
+ *    · NO backdrop-filter anywhere.
+ *
+ *  INSTALL NOTE
+ *  This is a dark theme, so set claude.ai's own appearance setting to
+ *  Dark. Some chrome (the model picker especially) paints from the app's
+ *  own mode rather than from CSS variables.
+ * ====================================================================== */
+
+@-moz-document domain("claude.ai") {
+
+    /* ==== 1. Theme variables — HSL triplet format ======================
+     * Dark theme, so the text ramp is INVERTED exactly as in Ink: --text-000
+     * is the PALEST value, because claude.ai reaches for 000 when it wants
+     * maximum contrast and on black that means near-white mint, not ink.
+     * Every hue in this file sits around 135-140 so the whole screen is one
+     * phosphor coating rather than a set of greens that don't know each
+     * other.                                                             */
+    :root,
+    html,
+    html[data-mode="light"],
+    html[data-mode="dark"],
+    html.dark {
+      /* background ramp: raised surfaces -> deep furniture */
+      --bg-000: 132 20%  5.0% !important;   /* dialogs, popovers    */
+      --bg-100: 130 14%  2.6% !important;   /* page                 */
+      --bg-200: 133 22%  4.0% !important;   /* sidebar, panels      */
+      --bg-300: 130 22%  7.5% !important;   /* hover states         */
+      --bg-400: 130 20% 11.5% !important;
+      --bg-500: 130 18% 16.5% !important;
+
+      /* text ramp: palest -> dimmest */
+      --text-000: 138 100% 91.0% !important;
+      --text-100: 138  85% 82.0% !important;  /* headings           */
+      --text-200: 137  69% 72.0% !important;  /* body mint          */
+      /* v1.2.0: 300-500 all came up. On a light theme the dim end of the
+         ramp is a whisper; on a page this black it is a disappearing act,
+         and claude.ai hangs plenty of ICONS off these variables, not just
+         quiet text. If anything is still too dark to read, this is the
+         first place to look before touching a selector. */
+      --text-300: 138  55% 66.0% !important;
+      --text-400: 137  45% 56.0% !important;  /* muted              */
+      --text-500: 137  42% 47.0% !important;
+
+      /* borders: green, low, never grey */
+      --border-100: 137 40% 14.0% !important;
+      --border-200: 137 46% 20.0% !important;
+      --border-300: 137 52% 26.0% !important;
+      --border-400: 137 58% 33.0% !important;
+
+      /* the accent — pure phosphor */
+      --accent-main-000: 135 100% 44% !important;
+      --accent-main-100: 135 100% 50% !important;
+      --accent-main-200: 135 100% 58% !important;
+      --accent-secondary-000: 158 90% 38% !important;
+      --accent-secondary-100: 158 92% 44% !important;
+      --accent-secondary-200: 158 94% 52% !important;
+      --accent-pro-000: 135 90% 42% !important;
+      --accent-pro-100: 135 92% 48% !important;
+      --accent-pro-200: 135 94% 56% !important;
+
+      color-scheme: dark;
+
+      /* SF Mono ships with modern iOS; Menlo has shipped with every iOS
+         ever and is a genuinely good screen mono. Courier last, because
+         Courier is what a terminal font looks like to someone who has
+         never used a terminal. NOT all caps anywhere — see Section 8. */
+      --ph-mono: ui-monospace, 'SF Mono', 'SFMono-Regular', Menlo, Monaco,
+                 'Cascadia Mono', Consolas, 'Courier New', monospace;
+    }
+
+    /* ==== 2. The void ==================================================
+     * Painted on <html> ONLY. Three notes on the black:
+     *   · It is very slightly GREEN, not neutral and never blue. A CRT at
+     *     rest still has a faint cast from the coating; pure #000 reads as
+     *     OLED off, which is a different and colder idea.
+     *   · One wide pool of screen-glow up top, off-centre, so the tube
+     *     looks like it's being driven from somewhere.
+     *   · A dimmer pool low down so the bottom of a long conversation
+     *     doesn't fall off a cliff into nothing.                        */
+
+    html {
+      background:
+        radial-gradient(ellipse 104% 46% at 42% -14%, rgba(0, 255, 65, 0.075), transparent 66%),
+        radial-gradient(ellipse 66% 34% at 86% 14%,  rgba(0, 220, 90, 0.035), transparent 68%),
+        radial-gradient(ellipse 120% 54% at 50% 118%, rgba(0, 180, 60, 0.045), transparent 64%),
+        linear-gradient(178deg, #050805 0%, #060A07 48%, #030503 100%) !important;
+      background-attachment: fixed !important;
+      background-color: #040604 !important;
+    }
+
+    body {
+      background: transparent !important;
+      background-color: transparent !important;
+    }
+
+    /* ==== 2b. Kill blur globally ======================================= */
+    * {
+      -webkit-backdrop-filter: none !important;
+      backdrop-filter: none !important;
+    }
+
+    /* ==== 3. The CRT layer: binary, scanlines, vignette ================
+     * All static. Two pseudo-elements on one fixed div.
+     *
+     *   ::before  the binary. A 300px tile of 1s and 0s at 5% opacity,
+     *             fixed so it does NOT scroll with the text — it is the
+     *             coating on the glass, not part of the document. Rows are
+     *             deliberately ragged (varying length and indent) so it
+     *             reads as data rather than as a grid.
+     *
+     *   ::after   scanlines + vignette. Pitch is 3px: 1px line, 2px gap.
+     *             This is the one number in the theme worth being fussy
+     *             about. Tighter than 3px and the lines beat against the
+     *             pixel grid on some panels and moire horribly — which is
+     *             the difference between atmospheric and nauseating, and
+     *             it can flip without warning between two phones. Started
+     *             deliberately subtle; easy to push if you want more.   */
+
+    /* CSS-ONLY NOTE: the userscript built a <div id="ph-crt"> whose only
+       job was hosting these two layers. With no JS to build it, they hang
+       off <html> instead — the same move Ink and Matcha make. Nothing is
+       lost: both are position:fixed, so the browser clips them to the
+       viewport for free, which is all the container's overflow:hidden was
+       ever doing. z-index keeps the stack: binary at -2, scanlines and
+       vignette at -1 above it, both under every scrap of page content and
+       both above <html>'s own background, which is where the void lives. */
+
+    html::before {
+      content: '';
+      position: fixed;
+      inset: -20px;
+      z-index: -2;
+      pointer-events: none;
+      /* v1.2.0: 0.05 -> 0.10 -> 0.24. The first bump was invisible and it
+         was my fault for treating this number in isolation: the binary is
+         painted UNDERNEATH both the scanlines and the vignette, so a good
+         part of every point I added here was being taken straight back
+         out by the layer above. Both of those came down at the same time
+         this round, which is why 0.24 is not as loud as it sounds.
+         This is still the tuning knob — nudge freely. */
+      opacity: 0.24;
+      /* CSS-ONLY / v1.4.1 — THE SECOND LAYER. A desktop problem the
+         phone could never have shown us: one 300px tile is fine in a
+         390px viewport, where you see a single column of it. Across
+         1900px you see six identical columns and four identical rows,
+         and the eye finds that grid immediately.
+
+         The fix is not a BIGGER tile — that only pushes the seam
+         further out. It is a second tile at a size co-prime with the
+         first. 300 and 380 share no factor above 20, so the two layers
+         realign every 5700px, which is wider than any screen this will
+         ever run on. The pattern therefore never visibly repeats, at
+         the cost of one more static background layer and no animation.
+
+         The second tile is deliberately fainter — fill-opacity 0.62
+         baked into the SVG rather than a separate opacity, so it stays
+         one layer — and it is offset on both axes, which breaks the
+         vertical alignment that was half the tell. */
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='380' height='380' viewBox='0 0 380 380'%3E%3Cg font-family='Menlo,Consolas,monospace' font-size='13' letter-spacing='2.6' fill='%2300FF41' fill-opacity='0.62'%3E%3Ctext x='1' y='17.0'%3E100 111100010010%3C/text%3E%3Ctext x='3' y='38.5'%3E011001100000001100%3C/text%3E%3Ctext x='9' y='60.0'%3E011000101 100000%3C/text%3E%3Ctext x='9' y='81.5'%3E10011000 00010100%3C/text%3E%3Ctext x='3' y='103.0'%3E1101001111 1100000%3C/text%3E%3Ctext x='6' y='124.5'%3E001100101011%3C/text%3E%3Ctext x='6' y='146.0'%3E100000100101110110%3C/text%3E%3Ctext x='9' y='167.5'%3E111100110101 1001%3C/text%3E%3Ctext x='9' y='189.0'%3E00111101 0001%3C/text%3E%3Ctext x='6' y='210.5'%3E0100 10010100%3C/text%3E%3Ctext x='9' y='232.0'%3E01010 1101110001%3C/text%3E%3Ctext x='1' y='253.5'%3E1000011110001%3C/text%3E%3Ctext x='1' y='275.0'%3E011101111100%3C/text%3E%3Ctext x='3' y='296.5'%3E100111111100110101%3C/text%3E%3Ctext x='1' y='318.0'%3E1110000110 0110%3C/text%3E%3Ctext x='1' y='339.5'%3E01100001 1111000111%3C/text%3E%3Ctext x='3' y='361.0'%3E010011110000000110%3C/text%3E%3C/g%3E%3C/svg%3E"),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E%3Cg font-family='Menlo,Consolas,monospace' font-size='13' letter-spacing='2.6' fill='%2300FF41'%3E%3Ctext x='3' y='15.0'%3E001 1100010010%3C/text%3E%3Ctext x='1' y='36.5'%3E11001100000001100%3C/text%3E%3Ctext x='6' y='58.0'%3E0110001011000001%3C/text%3E%3Ctext x='6' y='79.5'%3E10011000000101%3C/text%3E%3Ctext x='1' y='101.0'%3E01111 01001111110%3C/text%3E%3Ctext x='1' y='122.5'%3E00100001 0010101%3C/text%3E%3Ctext x='3' y='144.0'%3E000001001011101%3C/text%3E%3Ctext x='1' y='165.5'%3E111110011010 100%3C/text%3E%3Ctext x='1' y='187.0'%3E00111101000100%3C/text%3E%3Ctext x='1' y='208.5'%3E0100100101 001%3C/text%3E%3Ctext x='6' y='230.0'%3E01011 11100011101%3C/text%3E%3Ctext x='1' y='251.5'%3E01111000100011101%3C/text%3E%3Ctext x='6' y='273.0'%3E1100 100111111%3C/text%3E%3Ctext x='3' y='294.5'%3E0101011110 0011%3C/text%3E%3C/g%3E%3C/svg%3E");
+      background-repeat: repeat, repeat;
+      background-size: 380px 380px, 300px 300px;
+      background-position: 41px 13px, 0 0;
+    }
+
+    html::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background-image:
+        repeating-linear-gradient(to bottom,
+          rgba(0, 0, 0, 0.18) 0px,
+          rgba(0, 0, 0, 0.18) 1px,
+          rgba(0, 0, 0, 0)    1px,
+          rgba(0, 0, 0, 0)    3px),
+        radial-gradient(ellipse 78% 62% at 50% 46%,
+          transparent 40%,
+          rgba(0, 0, 0, 0.42) 100%);
+    }
+
+    /* ==== 4. Panels, menus, dialogs ====================================
+     * No glass and no lift-by-lightness here — on a screen this dark the
+     * surfaces are distinguished by their EDGE. Every panel is a black box
+     * with a green hairline, which is what a windowed terminal looks like.
+     *
+     * NOTE ON THE DIVIDER: inset shadow, never border-right. The drawer
+     * slides off-canvas by exactly its own width, so a real border sits at
+     * x=0 when closed and shows as a stray hairline down the screen edge.
+     * An inset shadow is drawn inside the box and leaves with it. Carried
+     * forward from Ink v1.2.0; still needs back-porting to Strawberry and
+     * Matcha.                                                            */
+    nav,
+    aside,
+    [class*="sidebar"] {
+      background: linear-gradient(180deg,
+        rgba(8, 14, 10, 0.97) 0%,
+        rgba(4, 7, 5, 0.98) 100%) !important;
+      border-right: none !important;
+      box-shadow:
+        inset -1px 0 0 rgba(0, 255, 65, 0.26),
+        inset 0 1px 0 rgba(0, 255, 65, 0.08),
+        0 8px 34px rgba(0, 0, 0, 0.7) !important;
+    }
+
+    [role="dialog"],
+    [role="menu"],
+    [role="listbox"],
+    [role="tooltip"],
+    [data-radix-popper-content-wrapper] > div,
+    [data-radix-menu-content] {
+      background: linear-gradient(160deg,
+        rgba(9, 16, 11, 0.98) 0%,
+        rgba(4, 8, 5, 0.99) 100%) !important;
+      border: 1px solid rgba(0, 255, 65, 0.34) !important;
+      border-radius: 2px !important;
+      color: #A9F8C0 !important;
+      box-shadow:
+        inset 0 1px 0 rgba(0, 255, 65, 0.10),
+        0 0 22px rgba(0, 255, 65, 0.07),
+        0 14px 44px rgba(0, 0, 0, 0.72) !important;
+    }
+
+    .bg-bg-000 { background-color: rgba(9, 16, 11, 0.82) !important; }
+    .bg-bg-100 { background-color: rgba(4, 7, 5, 0.62) !important; }
+    .bg-bg-200 { background-color: rgba(7, 12, 8, 0.74) !important; }
+    .bg-bg-300 { background-color: rgba(13, 22, 15, 0.82) !important; }
+
+    /* ==== 5. Top bar — let the tube through ============================ */
+    header {
+      background: transparent !important;
+      background-color: transparent !important;
+      box-shadow: none !important;
+      border-bottom: none !important;
+    }
+    header :is(div, span, a, h1, h2, button) {
+      color: #86E9A2 !important;
+    }
+    /* font SEPARATELY from colour, here and in every chrome rule below:
+       an icon-font glyph wants the theme's colour but must keep its own
+       font, or it stops existing. See tagGlyphs() and changelog v1.4.0. */
+    /* CSS-ONLY SUBSTITUTE — and this is the load-bearing line of the file.
+       The userscript fonts every span in here and exempts icon glyphs via
+       :not([data-ph-glyph]), a tag written by tagGlyphs(). No JS, no tag,
+       so the exemption is inert and the guard is a comment with a colon in
+       it. The face therefore goes on the CONTAINER ONLY and reaches the
+       text by inheritance. An icon-font span carries its own font-family
+       declaration — that is what makes it an icon — and any declaration
+       that matches an element beats a value inherited into it, so the icon
+       font is never replaced and the glyph never vanishes. !important
+       changes nothing here: importance is not inherited, only values are.
+       The cost is that chrome text carrying its OWN font class stays in
+       claude.ai's face rather than going mono. That is a handful of words
+       in the top bar against every icon in the theme, and it is not close. */
+    header {
+      font-family: var(--ph-mono) !important;
+    }
+    header :is(button, a):not(:has([class*="truncate"])) {
+      background: transparent !important;
+      background-image: none !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+    }
+
+    /* the chat-title pill. Strawberry and Matcha make this a gradient;
+       here it is a hard-cornered box with a hairline, because a rounded
+       pill is the single most 2015-app-looking object available and it
+       would undo the whole theme in one element. */
+    header button:has([class*="truncate"]),
+    header [role="button"]:has([class*="truncate"]) {
+      background: rgba(0, 255, 65, 0.045) !important;
+      border: 1px solid rgba(0, 255, 65, 0.34) !important;
+      border-radius: 2px !important;
+      box-shadow: none !important;
+    }
+    header button:has([class*="truncate"]) > *,
+    header [role="button"]:has([class*="truncate"]) > * {
+      background: transparent !important;
+      background-image: none !important;
+    }
+    header button:has([class*="truncate"]),
+    header button:has([class*="truncate"]) :is(span, div, h1, h2),
+    header button:has([class*="truncate"]) svg {
+      color: #A9F8C0 !important;
+    }
+
+    /* ==== 5b. Share ====================================================
+       Share is NOT in the header — it rides in the chat body under
+       data-testid="wiggle-controls-actions-share". The white pill is drawn
+       by the button's own pseudo-element, so mute that and let the button
+       paint. Ring is an inset shadow, not a border: the button ships
+       border-0 and a real border nudges the bar 2px. */
+    [data-testid="wiggle-controls-actions-share"] {
+      background: rgba(0, 255, 65, 0.05) !important;
+      border-radius: 2px !important;
+      box-shadow:
+        inset 0 0 0 1px rgba(0, 255, 65, 0.40),
+        inset 0 1px 0 rgba(0, 255, 65, 0.10) !important;
+      color: #A9F8C0 !important;
+      font-family: var(--ph-mono) !important;
+    }
+    [data-testid="wiggle-controls-actions-share"]::before,
+    [data-testid="wiggle-controls-actions-share"]::after {
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+    /* muting the pseudo-element takes the press state with it — give it
+       back as an inverse-video flash, which is how a terminal acknowledges
+       a keypress */
+    [data-testid="wiggle-controls-actions-share"]:hover,
+    [data-testid="wiggle-controls-actions-share"]:active {
+      background: rgba(0, 255, 65, 0.90) !important;
+      box-shadow: inset 0 0 0 1px rgba(0, 255, 65, 1) !important;
+      color: #030503 !important;
+    }
+    [data-testid="wiggle-controls-actions-share"]:hover :is(span, div, p, svg),
+    [data-testid="wiggle-controls-actions-share"]:active :is(span, div, p, svg) {
+      color: #030503 !important;
+    }
+    [data-testid="wiggle-controls-actions-share"] :is(span, div, p, svg) {
+      background: transparent !important;
+      background-image: none !important;
+      color: #A9F8C0 !important;
+    }
+
+    /* ==== 6. Composer — the lit part of the screen =====================
+     * This is where the futurism lives, and it is the ONLY place a real
+     * bloom is allowed. Five shadows, read outward:
+     *   1. inset   phosphor bleeding through the glass from behind
+     *   2. 0 0 0 1 the border's own tight halo, so the line reads as
+     *              glowing rather than as a second border
+     *   3. 18px    the near bloom
+     *   4. 48px    the far falloff, very low, so the light has somewhere
+     *              to end. Without it the glow stops dead and reads as a
+     *              rectangle of fog rather than as light.
+     *   5. black   a hard drop, which is what actually separates it from
+     *              the page
+     * Static. A pulsing composer would be a notification, not a mood.  */
+
+    fieldset {
+      background: linear-gradient(168deg,
+        rgba(8, 16, 10, 0.94) 0%,
+        rgba(4, 9, 6, 0.96) 100%) !important;
+      border: 1px solid rgba(0, 255, 65, 0.46) !important;
+      border-radius: 3px !important;
+      box-shadow:
+        inset 0 0 26px rgba(0, 255, 65, 0.06),
+        0 0 0 1px rgba(0, 255, 65, 0.12),
+        0 0 18px rgba(0, 255, 65, 0.22),
+        0 0 48px rgba(0, 255, 65, 0.10),
+        0 10px 34px rgba(0, 0, 0, 0.62) !important;
+    }
+
+    fieldset div,
+    fieldset div[class],
+    fieldset div[class] div[class] {
+      background-color: transparent !important;
+      background-image: none !important;
+    }
+
+    form:has(fieldset) {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    /* ==== 6b. Send key — inverse video ================================= *
+     * The one solid object on the screen. Filled pure phosphor with a
+     * black glyph, because inverse video IS the terminal idiom for "this
+     * is the active thing", and because in a room this dark one solid
+     * block of light carries more weight than any amount of glow.       */
+    button[aria-label*="send" i],
+    fieldset button[type="submit"],
+    .bg-accent-main-000,
+    .bg-accent-main-100,
+    .bg-accent-main-200 {
+      background: #00FF41 !important;
+      background-image: none !important;
+      border: 1px solid rgba(120, 255, 170, 0.55) !important;
+      border-radius: 2px !important;
+      overflow: hidden !important;
+      box-shadow:
+        0 0 12px rgba(0, 255, 65, 0.45),
+        0 0 30px rgba(0, 255, 65, 0.18) !important;
+    }
+    button[aria-label*="send" i] *,
+    fieldset button[type="submit"] * {
+      background: transparent !important;
+      background-image: none !important;
+      color: #021004 !important;
+    }
+
+    /* --- the pixel arrow (v1.1.0) -----------------------------------
+     * Nineteen 3px blocks, drawn as one element plus eighteen
+     * box-shadows, in the shape of a classic 7x7 bitmap arrow:
+     *
+     *        # # #
+     *      # # # # #
+     *    # # # # # # #
+     *          #
+     *          #
+     *          #
+     *
+     * Everything about this is deliberate. A pixel arrow cannot be
+     * antialiased, cannot be scaled wrong, and cannot inherit a colour
+     * from anything — it is white because the box-shadow says white. It
+     * is also the only truly LOW-resolution object in a theme that is
+     * otherwise pin-sharp, which is what makes it read as retro rather
+     * than as merely green.
+     *
+     * The native glyph is hidden rather than restyled. It was invisible
+     * anyway (phosphor-on-phosphor, see Section 14), and drawing our own
+     * removes any dependency on what claude.ai ships in there.
+     *
+     * SCOPED TO SEND ONLY, never [type="submit"] generally, so that when
+     * the button becomes Stop mid-reply it keeps its own square glyph
+     * instead of wearing an arrow that no longer means anything.      */
+
+    button[aria-label*="send" i] {
+      position: relative !important;
+      border-radius: 2px !important;
+    }
+    button[aria-label*="send" i] svg {
+      display: none !important;
+    }
+    button[aria-label*="send" i]::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 3px;
+      height: 3px;
+      background: #F2FFF6;
+      transform: translate(-1.5px, -10.5px);
+      pointer-events: none;
+      box-shadow:
+        -3px  3px 0 0 #F2FFF6,  0px  3px 0 0 #F2FFF6,  3px  3px 0 0 #F2FFF6,
+        -6px  6px 0 0 #F2FFF6, -3px  6px 0 0 #F2FFF6,  0px  6px 0 0 #F2FFF6,
+         3px  6px 0 0 #F2FFF6,  6px  6px 0 0 #F2FFF6,
+        -9px  9px 0 0 #F2FFF6, -6px  9px 0 0 #F2FFF6, -3px  9px 0 0 #F2FFF6,
+         0px  9px 0 0 #F2FFF6,  3px  9px 0 0 #F2FFF6,  6px  9px 0 0 #F2FFF6,
+         9px  9px 0 0 #F2FFF6,
+         0px 12px 0 0 #F2FFF6,  0px 15px 0 0 #F2FFF6,  0px 18px 0 0 #F2FFF6;
+    }
+
+    /* ==== 6c. The dock ================================================= *
+     * The strip the composer sits in fades from clear to solid void, so
+     * scrolling output dissolves into the dark instead of colliding with
+     * the composer.
+     *
+     * CSS-ONLY SUBSTITUTE: the userscript finds this container by hunting
+     * for the disclaimer's wording and tagging its ancestor (docker()),
+     * because the strip has no stable class of its own. Ink's Stylus build
+     * first tried the structural guess Strawberry and Matcha both use —
+     * div:has(> form:has(fieldset)) — and on desktop that container turned
+     * out not to be the one doing the layout, so the fade never appeared.
+     * Tested, not theorised. So this build does not hunt at all: the fade
+     * hangs off the composer's OWN form and stretches past the viewport
+     * edges, which needs no knowledge of the surrounding DOM.
+     *
+     * NO z-index ON PURPOSE. The pseudo-element paints in the form's own
+     * layer, which puts it above the chat text (an earlier subtree) and
+     * below the form's contents (later, in flow). Give it z-index:-1 and it
+     * drops into the root stacking context's negative layer, where it hides
+     * behind the very text it exists to cover — and, on this theme, behind
+     * the CRT layers as well.                                            */
+
+    form:has(fieldset) {
+      position: relative !important;
+    }
+    form:has(fieldset)::before {
+      content: '';
+      position: absolute;
+      left: -50vw;
+      right: -50vw;
+      top: -90px;
+      bottom: -160px;
+      pointer-events: none;
+      background: linear-gradient(to bottom,
+        rgba(4, 6, 4, 0)    0%,
+        rgba(4, 6, 4, 0.76) 26%,
+        rgba(4, 6, 4, 0.95) 46%,
+        #040604             68%);
+    }
+
+    /* CSS-ONLY CASUALTY: the userscript gives the "Claude can make
+       mistakes" line the mono face, a dimmer green and a void-coloured
+       halo so it reads as a footer note rather than as output. It finds
+       that line by its WORDING, and CSS has no text-matching selector.
+       It keeps whatever the theme's inherited colours give it.          */
+
+    /* composer chrome: model name, icons, the + button */
+    fieldset, fieldset * {
+      color: #6FD68C !important;
+    }
+    /* CSS-ONLY: container only, per the note in Section 5. */
+    fieldset {
+      font-family: var(--ph-mono) !important;
+    }
+
+    /* what you type. The caret is pure phosphor and it BLOOMS — a caret is
+       one glyph wide, so glow costs nothing here and it is the single most
+       "live terminal" detail in the theme. */
+    div[contenteditable="true"],
+    div[contenteditable="true"] p,
+    textarea {
+      background-color: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      color: #CFFFDD !important;
+      caret-color: #00FF41 !important;
+      font-family: var(--ph-mono) !important;
+      font-size: 0.94em !important;
+      line-height: 1.58 !important;
+    }
+    ::placeholder,
+    div[contenteditable="true"] p[data-placeholder]::before,
+    [contenteditable] [data-placeholder]::before {
+      color: #3E8A52 !important;
+      opacity: 1 !important;
+      font-family: var(--ph-mono) !important;
+      font-style: normal !important;
+    }
+
+    /* ==== 7. YOUR messages — a prompt, not a bubble ====================
+     *
+     *  The whole theme is in this section.
+     *
+     *  Everything that made it a bubble is removed: fill, border, radius,
+     *  padding, shadow. What replaces it is a single pseudo-element in the
+     *  gutter carrying a bright green ">", and a left indent equal to its
+     *  own width, so wrapped lines hang under each other exactly the way
+     *  real terminal output wraps rather than tucking back under the
+     *  prompt.
+     *
+     *  The glow on the ">" is allowed because it is ONE CHARACTER. This is
+     *  the same licence the caret gets and the same one body text is
+     *  refused.
+     *
+     *  ALIGNMENT: claude.ai right-aligns your messages. A terminal cannot
+     *  do that — the prompt column has to be fixed or it stops reading as
+     *  a prompt. So the wrapper rows are pushed back to flex-start. This
+     *  is the one rule in the file most likely to need a nudge if the app
+     *  reshuffles its DOM, and it is deliberately spread across four
+     *  ancestor depths for that reason.
+     */
+
+    /* clear the ancestor wrappers (the ghost rectangle) and un-right them.
+       Do NOT touch overflow here. */
+    div:has(> [data-testid="user-message"]),
+    div:has(> div > [data-testid="user-message"]),
+    div:has(> div > div > [data-testid="user-message"]),
+    div:has(> div > div > div > [data-testid="user-message"]) {
+      background: transparent !important;
+      background-color: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+      justify-content: flex-start !important;
+      align-items: flex-start !important;
+      margin-left: 0 !important;
+      margin-right: auto !important;
+    }
+    div:has([data-testid="user-message"])::before,
+    div:has([data-testid="user-message"])::after {
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+
+    [data-testid="user-message"] {
+      position: relative !important;
+      background: transparent !important;
+      background-image: none !important;
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      color: #CFFFDD !important;
+      padding: 0 0 0 1.45em !important;
+      margin-left: 0 !important;
+      margin-right: auto !important;
+      max-width: 100% !important;
+    }
+
+    /* the prompt */
+    [data-testid="user-message"]::before {
+      content: '>';
+      position: absolute;
+      left: 0.05em;
+      top: 0;
+      font-family: var(--ph-mono);
+      font-weight: 700;
+      color: #00FF41;
+      line-height: inherit;
+      text-shadow:
+        0 0 6px rgba(0, 255, 65, 0.85),
+        0 0 16px rgba(0, 255, 65, 0.40);
+      pointer-events: none;
+    }
+
+    [data-testid="user-message"] :is(p, li, span, div) {
+      color: #CFFFDD !important;
+    }
+
+    /* mono everywhere, and a touch tighter than Ink's serif wanted —
+       monospace runs wide, so it needs less leading, not more */
+    [data-testid="user-message"],
+    [data-testid="user-message"] :is(p, li, span, div, strong, b, em, i, del, blockquote) {
+      font-family: var(--ph-mono) !important;
+    }
+    [data-testid="user-message"] :is(p, li, blockquote) {
+      font-size: 0.94em !important;
+      line-height: 1.62 !important;
+    }
+
+    /* ==== 7b. The collapse fade ======================================== *
+     * With no bubble to fade INTO, the "Show more" overlay has to run to
+     * the page colour.
+     *
+     * CSS-ONLY NOTE: the userscript had two ways in — these Tailwind-ish
+     * class hooks, and a .ph-fade tag applied by a JS fade-hunter sitting
+     * right beside them. The hooks were always the primary and the tag was
+     * the backstop, so losing the backstop costs nothing.               */
+
+    [data-testid="user-message"] [class*="to-bg-"],
+    [data-testid="user-message"] [class*="from-bg-"],
+    [data-testid="user-message"] [class*="bg-gradient"] {
+      background-color: transparent !important;
+      background-image: linear-gradient(to bottom,
+        rgba(4, 6, 4, 0)    0%,
+        rgba(4, 6, 4, 0.74) 42%,
+        rgba(4, 6, 4, 0.96) 78%,
+        #040604             100%) !important;
+    }
+
+    /* "Show more" / "Show less" — a control, so it gets the phosphor */
+    div:has(> [data-testid="user-message"]) button {
+      color: #00FF41 !important;
+      font-family: var(--ph-mono) !important;
+    }
+
+    /* ==== 8. Claude's messages — output ================================
+     * No container. No frame. No fill. Just text running down the tube.
+     *
+     * The body mint is #86E9A2 rather than #00FF41, and that gap is the
+     * most important colour decision in the file. Pure phosphor body copy
+     * at any real length is genuinely unpleasant to read — the saturation
+     * fights the black hard enough that the letters appear to buzz. The
+     * mint keeps the hue and gives back the lightness.
+     *
+     * And no, nothing is uppercased. Terminals were never all caps by
+     * choice; early ones were all caps because the character ROM had no
+     * room for lowercase. Reproducing a hardware limitation as an
+     * aesthetic is how you end up with a theme you can't read.          */
+
+    .font-claude-message,
+    .font-claude-response,
+    [data-testid="assistant-message"] {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    body :is(p, li, blockquote, td, th, figcaption, summary):not(pre *):not(code):not(code *) {
+      color: #86E9A2 !important;
+      font-family: var(--ph-mono) !important;
+    }
+    body :is(p, li, blockquote):not(pre *):not(code *) {
+      font-size: 0.94em !important;
+      line-height: 1.66 !important;
+    }
+    body :is(h1, h2, h3, h4, h5, h6, strong, b):not(pre *):not(code *) {
+      color: #CFFFDD !important;
+      font-family: var(--ph-mono) !important;
+      letter-spacing: 0.01em !important;
+    }
+
+    /* the prompt line keeps its own brighter colour — the two rules above
+       are document-wide and would otherwise repaint your messages */
+    [data-testid="user-message"] :is(p, li, blockquote, td, th, summary),
+    [data-testid="user-message"] :is(h1, h2, h3, h4, h5, h6, strong, b) {
+      color: #CFFFDD !important;
+    }
+
+    /* Italic action text. This is the ONE place body-adjacent text is
+       allowed a bloom, and only because these runs are three or four words
+       long. A glow on a phrase is a highlight; a glow on a paragraph is a
+       smear. If a long italic block ever shows up it will look soft, and
+       that is a trade I am making on purpose. */
+    .font-claude-message :is(em, i),
+    .font-claude-response :is(em, i),
+    [data-testid="assistant-message"] :is(em, i) {
+      color: #00FF41 !important;
+      font-style: italic !important;
+      text-shadow:
+        0 0 7px rgba(0, 255, 65, 0.42),
+        0 0 16px rgba(0, 255, 65, 0.18) !important;
+    }
+
+    /* ==== 8b. The block cursor ========================================= *
+     * A thick phosphor block at the end of the LAST reply only, blinking.
+     *
+     * Last one only, deliberately. One cursor at the bottom of the page
+     * reads as a terminal sitting there waiting — quietly alive. Fifteen
+     * of them blinking down a long scroll reads as a page full of errors,
+     * and it is the same trap as Matrix rain: one blinking element is
+     * free, fifteen is a battery tax for nothing.
+     *
+     * It rides the last PARAGRAPH rather than the message container, so it
+     * sits inline after the final full stop instead of dropping onto its
+     * own line.
+     *
+     * steps(1) so opacity never interpolates — a hard on/off is both what
+     * a real cursor does and marginally cheaper than a fade.
+     *
+     * CSS-ONLY SUBSTITUTE — AND THE ONE RULE IN THIS FILE I COULD NOT TEST.
+     * The userscript walks the DOM, finds the last assistant message, finds
+     * the last non-empty text block inside it, and tags that one element
+     * .ph-caret — re-tagging as the reply streams, which is why it looks
+     * like typing. CSS cannot walk anything, so "last reply" has to be
+     * expressed structurally: a wrapper that CONTAINS an assistant message
+     * and has no later sibling that contains one. Then the last block-level
+     * child inside it takes the cursor.
+     *
+     * This depends on each message sitting in its own wrapper, which is the
+     * usual claude.ai shape but is not something I can verify from here.
+     * Two ways it can miss, both cosmetic and neither breaking anything:
+     *   · NO cursor at all -> the wrapper assumption is wrong
+     *   · a cursor on EVERY reply -> the lastness test isn't biting
+     * If it's the second one and it bothers you, delete this rule and the
+     * theme is otherwise untouched. The caret in the composer — which is
+     * the livelier of the two anyway — is a real CSS property and is not
+     * affected either way.
+     *
+     * It also cannot re-tag mid-stream, so it will not appear to type; it
+     * sits at the end of the finished reply instead.                    */
+
+    /* v1.4.1 — OFF BY ONE LEVEL. The lastness test on the wrapper was
+       fine; what failed was the second half, which asked for a paragraph
+       that is a direct child of the WRAPPER. The paragraph is a child of
+       the MESSAGE, which is a child of the wrapper. So the selector
+       described a element that does not exist and quietly matched
+       nothing, which is exactly what a missing cursor looks like.
+
+       Now it descends into the message properly, at any of three depths,
+       since claude.ai wraps message content in a grid div some of the
+       time and not others. The three are mutually exclusive — each one
+       needs a different number of last-child wrappers between the
+       message and the paragraph — so there is no way to get two cursors
+       out of one reply. */
+    div:has(> :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"])):not(:has(~ * :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]))):not(:has(~ :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]))) :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]) > :is(p, h1, h2, h3, h4, h5, h6, blockquote):last-child::after,
+    div:has(> :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"])):not(:has(~ * :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]))):not(:has(~ :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]))) :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]) > *:last-child > :is(p, h1, h2, h3, h4, h5, h6, blockquote):last-child::after,
+    div:has(> :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"])):not(:has(~ * :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]))):not(:has(~ :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]))) :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]) > *:last-child > *:last-child > :is(p, h1, h2, h3, h4, h5, h6, blockquote):last-child::after {
+      content: '';
+      display: inline-block;
+      width: 0.56em;
+      height: 1.0em;
+      margin-left: 0.16em;
+      vertical-align: -0.14em;
+      background: #00FF41;
+      box-shadow:
+        0 0 8px rgba(0, 255, 65, 0.7),
+        0 0 20px rgba(0, 255, 65, 0.3);
+      animation: phBlink 1.06s steps(1) infinite;
+    }
+
+    @keyframes phBlink {
+      0%, 49%   { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+
+    /* ==== 9. Quiet text stays quiet (thinking block, timestamps) ======= */
+    body :is(p, li, span, div, summary):is([class*="text-text-3"], [class*="text-text-4"], [class*="text-text-5"]):not(pre *):not(code *),
+    body :is([class*="text-text-3"], [class*="text-text-4"], [class*="text-text-5"]) :is(p, li, span, div):not(pre *):not(code *) {
+      color: #5CBE77 !important;
+    }
+    div[class*="grid-template-rows"] :is(p, li, span, div):not(pre *):not(code *),
+    div[class*="grid-template-rows"] svg {
+      color: #5CBE77 !important;
+    }
+    div[class*="grid-template-rows"] * {
+      border-color: rgba(0, 255, 65, 0.16) !important;
+    }
+
+    /* ==== 9b. The sidebar ==============================================
+     * Same discipline Ink arrived at, different colours: rows are the mint,
+     * and the pure phosphor is reserved for the row you are actually on.
+     * A whole navigation list in #00FF41 spends the accent on furniture,
+     * and once the bright green is ordinary it stops meaning anything.  */
+
+    nav :is(a, a span, a div, button span),
+    aside :is(a, a span, a div, button span),
+    [class*="sidebar"] :is(a, a span, a div, button span) {
+      color: #86E9A2 !important;
+    }
+    /* CSS-ONLY: container only, per the note in Section 5. */
+    nav,
+    aside,
+    [class*="sidebar"] {
+      font-family: var(--ph-mono) !important;
+    }
+
+    /* icons DO get the pure phosphor everywhere, per the brief. They are
+       small stroked shapes rather than runs of text, so saturation reads
+       as accent rather than as noise. claude.ai draws them with
+       stroke="currentColor", so this is just a colour on the ancestor. */
+    nav svg,
+    aside svg,
+    [class*="sidebar"] svg,
+    header svg,
+    fieldset svg {
+      color: #00FF41 !important;
+    }
+
+    nav :is(a[aria-current], a[data-active="true"], [aria-selected="true"]),
+    nav :is(a[aria-current], a[data-active="true"], [aria-selected="true"]) :is(span, div, svg),
+    aside :is(a[aria-current], a[data-active="true"], [aria-selected="true"]),
+    aside :is(a[aria-current], a[data-active="true"], [aria-selected="true"]) :is(span, div, svg),
+    nav a:hover, nav a:hover :is(span, div, svg),
+    aside a:hover, aside a:hover :is(span, div, svg) {
+      color: #00FF41 !important;
+      text-shadow: 0 0 8px rgba(0, 255, 65, 0.35) !important;
+    }
+
+    /* ==== 10. Buttons & icons ========================================== */
+    button:not([aria-label*="Send" i]):not([type="submit"]),
+    button:not([aria-label*="Send" i]):not([type="submit"]) :is(span, div, p) {
+      color: #86E9A2 !important;
+    }
+    /* CSS-ONLY: the button itself, never its spans. Per Section 5. */
+    button:not([aria-label*="Send" i]):not([type="submit"]) {
+      font-family: var(--ph-mono) !important;
+    }
+    button:not([aria-label*="Send" i]):not([type="submit"]) svg {
+      color: #00FF41 !important;
+    }
+
+    /* ==== 11. Ambience =================================================
+     * Selection is INVERSE VIDEO — solid phosphor block, black text. This
+     * is free, it is exactly right, and it is the detail people will
+     * notice without being able to say why.                             */
+    ::selection {
+      background: #00FF41;
+      color: #030503;
+    }
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0, 255, 65, 0.30);
+      border-radius: 0;
+    }
+    ::-webkit-scrollbar-track { background: transparent; }
+    /* Firefox draws its own scrollbar and ignores the ::-webkit- rules
+       above; these two are the equivalent, and are harmless elsewhere.
+       Not in the userscript, which only ever ran on WebKit. */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0, 255, 65, 0.30) transparent;
+    }
+
+    /* code blocks need to differ from body text that is ALREADY mono, so
+       they are distinguished by their box rather than by their face */
+    pre, code {
+      background-color: rgba(0, 255, 65, 0.055) !important;
+      border-radius: 2px !important;
+      font-family: var(--ph-mono) !important;
+    }
+    pre {
+      border: 1px solid rgba(0, 255, 65, 0.24) !important;
+    }
+    code, pre code {
+      color: #B6FFCB !important;
+    }
+
+    hr {
+      border-color: rgba(0, 255, 65, 0.26) !important;
+    }
+
+    a:not(button) {
+      color: #00FF41 !important;
+      text-decoration-color: rgba(0, 255, 65, 0.45) !important;
+    }
+
+    /* ==== 12. (Markdown bloom — userscript only) =======================
+       The .user.js build repaints YOUR sent messages so **bold**, *italics*,
+       `code`, # headers, ~~strikes~~ and --- dividers render, and dresses
+       the results — phosphor italics, boxed inline code, a hairline rule.
+       That needs JavaScript, so it is absent here by necessity and the
+       styling that clothed it is absent with it. Your prompts still show
+       their raw asterisks, in mono, after the green ">". Which, for a
+       theme about a terminal, is arguably the more honest rendering.   */
+
+    /* ==== 14. ICONS — the visibility pass ==============================
+     *
+     *  v1.1.0. This section exists because five separate things went
+     *  missing in v1.0.0 — sidebar row icons, the top bar's drawer toggle
+     *  and chevrons, the composer's attach and model-picker glyphs, and
+     *  the copy / regenerate buttons under a message — and they all went
+     *  missing for the same reason.
+     *
+     *  THE DIAGNOSIS
+     *  Setting "color" on an SVG only reaches the parts of it that were
+     *  drawn with currentColor. claude.ai has two families of icon: the
+     *  outline ones, which declare stroke="currentColor" and follow the
+     *  text colour obediently, and a set of solid ones that declare no
+     *  paint at all and simply inherit fill from the document. On every
+     *  light theme in this set, and on claude.ai's own dark mode, the
+     *  inherited fill happened to land somewhere visible. On a page this
+     *  black it landed on black. They were never mis-coloured; they were
+     *  filled in with the background.
+     *
+     *  So the fix is in two halves: force the colour (which was already
+     *  right, and is repeated here at higher specificity so nothing
+     *  upstream can undo it), and hand back a fill to the shapes that
+     *  never had one.
+     *
+     *  THE BRAND-MARK CAVEAT
+     *  The second half is scoped with :not([fill]):not([stroke]), which
+     *  is doing real work: the Drive triangle, the Gmail M and the
+     *  Anthropic starburst all declare their own colours on every shape
+     *  they own, so this rule cannot see them and they keep their proper
+     *  colours. The svg:not([fill="none"]) guard does the same job at the
+     *  root, keeping outline icons from being flood-filled into blobs.
+     *
+     *  IF SOMETHING TURNS INTO A GREEN BLOB, it is one of these two fill
+     *  rules and nothing else in the file. Delete the offending rule and
+     *  everything else keeps working.                                   */
+
+    :is(nav, aside, header, fieldset, [class*="sidebar"], [role="dialog"], [role="menu"]) svg,
+    button svg,
+    [role="button"] svg,
+    a svg {
+      color: #00FF41 !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+
+    /* --- half one: shapes that use currentColor, made sure of --- */
+    svg [fill="currentColor"]  { fill: currentColor !important; }
+    svg [stroke="currentColor"] { stroke: currentColor !important; }
+
+    /* sprite icons pull their shapes in through <use>, which the shape
+       selectors above cannot see into. Paint the reference itself. */
+    svg use { fill: currentColor !important; }
+
+    /* --- half two: shapes with no paint of their own, given one --- */
+    :is(nav, aside, header, fieldset, [class*="sidebar"], button, [role="button"], a)
+      svg:not([fill]):not([stroke]):not([fill="none"])
+      :is(path, circle, rect, ellipse, polygon, polyline):not([fill]):not([stroke]) {
+      fill: currentColor !important;
+    }
+
+    /* --- CSS-ONLY SUBSTITUTES for the three JS icon passes -------------
+     *
+     * v1.2.0–v1.4.0 added a JS engine on top of this section: paintIcon()
+     * read each shape's attributes and wrote the paint back inline,
+     * verify() re-read the COMPUTED paint afterwards and phosphored
+     * anything still resolving to near-black, and paintMask() handled
+     * icons drawn as a coloured box behind a mask cutout.
+     *
+     * Most of that engine turns out to be re-implementable, because the
+     * per-SHAPE test it was built around — "does this shape declare its
+     * own paint?" — is an attribute test, and attribute tests are the one
+     * kind of looking CSS can do. :not([fill]):not([stroke]) above IS
+     * paintIcon's decision, made by the selector engine instead.
+     *
+     * These two rules cover what's left of the reachable part:            */
+
+    /* verify()'s near-black net, for the case it actually caught: a shape
+       with black BAKED IN as a literal. The computed-value half of that
+       pass — a fill arriving from claude.ai's own stylesheet rather than
+       from an attribute — has no CSS equivalent and is genuinely gone. In
+       practice the attribute cases are the ones that were biting. */
+    :is(nav, aside, header, fieldset, [class*="sidebar"], button, [role="button"], a):not([aria-label*="send" i]):not([aria-label*="stop" i]):not([type="submit"]) svg :is(path, circle, rect, ellipse, polygon, polyline, g)[fill="#000"],
+    :is(nav, aside, header, fieldset, [class*="sidebar"], button, [role="button"], a):not([aria-label*="send" i]):not([aria-label*="stop" i]):not([type="submit"]) svg :is(path, circle, rect, ellipse, polygon, polyline, g)[fill="#000000"],
+    :is(nav, aside, header, fieldset, [class*="sidebar"], button, [role="button"], a):not([aria-label*="send" i]):not([aria-label*="stop" i]):not([type="submit"]) svg :is(path, circle, rect, ellipse, polygon, polyline, g)[fill="black"] {
+      fill: currentColor !important;
+    }
+
+    /* paintMask(), the half of it that doesn't need measuring: an element
+       whose art is a mask cutout is just a box, so colouring the box
+       colours the icon. The userscript also REPURPOSED plain background
+       images into masks, which needs the element's measured size to avoid
+       doing it to a genuine decorative background — that half needs JS and
+       is not here. If any chrome element turns into a green rectangle, it
+       is this rule; delete it and nothing else changes. */
+    :is(nav, aside, header, fieldset, [class*="sidebar"], button, [role="button"], a) :is(span, i, div)[style*="mask-image"] {
+      background-color: #00FF41 !important;
+      background-image: none !important;
+    }
+
+    /* the send / stop key is the one place a phosphor icon would be
+       invisible for the opposite reason — green on green. Its glyph goes
+       dark, and outranks the rule above by specificity. */
+    button[aria-label*="send" i] svg,
+    button[aria-label*="stop" i] svg,
+    fieldset button[type="submit"] svg,
+    button[aria-label*="send" i] svg :is(path, circle, rect, polygon, polyline),
+    button[aria-label*="stop" i] svg :is(path, circle, rect, polygon, polyline),
+    fieldset button[type="submit"] svg :is(path, circle, rect, polygon, polyline) {
+      color: #021004 !important;
+    }
+
+    /* the message action row (copy, regenerate, edit) sits outside every
+       container named above, so it gets its own line. Muted by default
+       because it is chrome, phosphor on press because it is a control. */
+    [data-testid="user-message"] ~ * button svg,
+    div:has(> [data-testid="user-message"]) ~ div button svg,
+    .font-claude-message ~ * button svg,
+    [data-testid="assistant-message"] ~ * button svg {
+      color: #5FC77E !important;
+    }
+    [data-testid="user-message"] ~ * button:hover svg,
+    .font-claude-message ~ * button:hover svg,
+    [data-testid="assistant-message"] ~ * button:hover svg {
+      color: #00FF41 !important;
+    }
+
+    /* New chat's circle was a dark disc with an invisible + in it. Now it
+       is a proper key: hairline box, phosphor glyph. */
+    nav button:has(svg):first-of-type,
+    nav a:has(svg) > span:first-child:empty {
+      border-radius: 2px !important;
+    }
+
+    /* ==== 14b. THE STARBURST — the page-wide monochrome pass ===========
+     *
+     * v1.4.1. Section 14 above only ever reaches nav, header, fieldset,
+     * buttons and links, because those are the regions where icons went
+     * missing. The userscript's iconize() had no such scope: it ran on
+     * document.querySelectorAll('svg') and phosphored anything that came
+     * back monochrome, ANYWHERE — including the Anthropic starburst in
+     * the greeting and beside every reply.
+     *
+     * Its test was countPaints() > 1: how many distinct paints does this
+     * icon resolve to. One means a monochrome UI glyph, whatever colour
+     * it happens to declare, so repaint it. Two or more means art
+     * direction — the Drive triangle, the Gmail M — so leave it alone.
+     * CSS cannot count paints. But it can ask two cheaper questions that
+     * between them cover the same ground, and both are attribute or
+     * structural tests, which is the kind of looking CSS is good at.
+     *
+     * FIRST, BY COLOUR. The starburst is a flat fill of claude.ai's clay,
+     * #D97757 — sampled off the screenshot rather than guessed. If that
+     * colour is declared as an attribute, this catches it outright and
+     * nothing else on the page uses it.
+     *
+     * SECOND, BY SHAPE. An svg whose only element child is a single path
+     * is monochrome by construction — there is nothing in it to hold a
+     * second colour. Multi-part brand marks fail :only-child and are
+     * safe by the same mechanic that makes the rule work.
+     *
+     * Both are scoped OUT of the send key, which wants its dark glyph,
+     * and skip anything containing a bitmap. If one of them turns
+     * something into a green shape you wanted coloured, delete that one
+     * rule — they are independent and the theme survives either. */
+
+    /* --- by colour --- */
+    svg[fill="#D97757" i],
+    svg [fill="#D97757" i],
+    svg[fill="#D97757" i] :is(path, circle, rect, ellipse, polygon, polyline, g),
+    [style*="#D97757" i] {
+      fill: #00FF41 !important;
+      color: #00FF41 !important;
+    }
+
+    /* --- by shape: single-path svgs outside the chrome Section 14 owns --- */
+    :is(main, article, [role="main"])
+      svg:has(> path:only-child):not(:has(image)):not([aria-label*="send" i]) {
+      color: #00FF41 !important;
+    }
+    :is(main, article, [role="main"])
+      svg:has(> path:only-child):not(:has(image)):not([aria-label*="send" i])
+      > path:not([fill="none"]) {
+      fill: currentColor !important;
+    }
+
+    /* ==== 13. Reduced motion ===========================================
+     * The cursor stops blinking but stays visible. Removing it entirely
+     * would take the "waiting for input" reading away from people who are
+     * only asking for less movement, not less meaning.                  */
+    @media (prefers-reduced-motion: reduce) {
+            div:has(> :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"])):not(:has(~ * :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]))):not(:has(~ :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]))) :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]) > :is(p, h1, h2, h3, h4, h5, h6, blockquote):last-child::after,
+      div:has(> :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"])):not(:has(~ * :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]))):not(:has(~ :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]))) :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]) > *:last-child > :is(p, h1, h2, h3, h4, h5, h6, blockquote):last-child::after,
+      div:has(> :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"])):not(:has(~ * :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]))):not(:has(~ :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]))) :is(.font-claude-message, .font-claude-response, [data-testid="assistant-message"]) > *:last-child > *:last-child > :is(p, h1, h2, h3, h4, h5, h6, blockquote):last-child::after {
+        animation: none;
+        opacity: 1;
+      }
+    }
+
+}
